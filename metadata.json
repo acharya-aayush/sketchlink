@@ -1,0 +1,5 @@
+{
+  "name": "SketchLink",
+  "description": "A responsive Pictionary-style drawing game designed for friends.",
+  "requestFramePermissions": []
+}
