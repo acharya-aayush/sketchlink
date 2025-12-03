@@ -4,9 +4,10 @@ import { GameEvent, GameSettings, GalleryItem } from '../types';
 
 type Listener = (event: GameEvent) => void;
 
-// Server URL: Uses environment variable in production, localhost for development
-// Set VITE_SERVER_URL in your deployment platform (Vercel, Render, etc.)
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'; 
+// Production: Use Render.com server, Development: Use localhost
+const SERVER_URL = import.meta.env.DEV 
+  ? 'http://localhost:3001' 
+  : 'https://sketchlink-server.onrender.com'; 
 
 class MultiplayerService {
   private socket: Socket | null = null;
