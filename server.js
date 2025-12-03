@@ -6,6 +6,15 @@ import cors from 'cors';
 const app = express();
 app.use(cors());
 
+// Health check endpoint for Render
+app.get('/', (req, res) => {
+  res.send('SketchLink Server is running! 🎨');
+});
+
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', rooms: rooms.size });
+});
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {

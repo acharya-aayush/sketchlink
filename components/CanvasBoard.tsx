@@ -227,8 +227,28 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
     const canvas = canvasRef.current;
     if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
-    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    
+    let clientX: number, clientY: number;
+    
+    if ('touches' in e) {
+      // Handle touch events - check if touches exist (not on touchend)
+      if (e.touches.length === 0) {
+        // On touchend, use changedTouches instead
+        if ('changedTouches' in e && e.changedTouches.length > 0) {
+          clientX = e.changedTouches[0].clientX;
+          clientY = e.changedTouches[0].clientY;
+        } else {
+          return null;
+        }
+      } else {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      }
+    } else {
+      clientX = (e as React.MouseEvent).clientX;
+      clientY = (e as React.MouseEvent).clientY;
+    }
+    
     return { x: clientX - rect.left, y: clientY - rect.top };
   };
 

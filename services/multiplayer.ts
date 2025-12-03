@@ -4,8 +4,11 @@ import { GameEvent, GameSettings, GalleryItem } from '../types';
 
 type Listener = (event: GameEvent) => void;
 
-// Production: Use Render.com server, Development: Use localhost
-const SERVER_URL = import.meta.env.DEV 
+// Detect if running on localhost or deployed
+const isLocalhost = typeof window !== 'undefined' && 
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+const SERVER_URL = isLocalhost 
   ? 'http://localhost:3001' 
   : 'https://sketchlink-server.onrender.com'; 
 
