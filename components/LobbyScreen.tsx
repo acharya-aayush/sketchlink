@@ -5,8 +5,8 @@ import { GameSettings, Player } from '../types';
 import { AVATARS } from '../constants';
 
 interface LobbyScreenProps {
-  lobbyMode: 'HOME' | 'HOST' | 'JOIN' | 'LOADING';
-  setLobbyMode: (mode: 'HOME' | 'HOST' | 'JOIN' | 'LOADING') => void;
+  lobbyMode: 'HOME' | 'HOST' | 'JOIN' | 'LOADING' | 'WAKING_SERVER';
+  setLobbyMode: (mode: 'HOME' | 'HOST' | 'JOIN' | 'LOADING' | 'WAKING_SERVER') => void;
   playerName: string;
   setPlayerName: (name: string) => void;
   playerAvatar: string;
@@ -72,6 +72,24 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
     <div className="flex flex-col items-center justify-center space-y-4 animate-fade-in">
         <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
         <p className="text-xl font-marker text-slate-600">Connecting to Server...</p>
+    </div>
+  );
+
+  const renderWakingServer = () => (
+    <div className="flex flex-col items-center justify-center space-y-4 animate-fade-in max-w-sm text-center">
+        <div className="text-6xl animate-bounce">☕</div>
+        <p className="text-2xl font-marker text-slate-700">Waking up server...</p>
+        <p className="text-slate-500 text-sm">Free servers sleep after 15 min of inactivity.<br/>This takes about 30 seconds, hang tight!</p>
+        <div className="w-48 h-2 bg-slate-200 rounded-full overflow-hidden">
+          <div className="h-full bg-blue-500 rounded-full animate-pulse" style={{width: '60%', animation: 'loading 2s ease-in-out infinite'}}></div>
+        </div>
+        <style>{`
+          @keyframes loading {
+            0% { width: 0%; }
+            50% { width: 80%; }
+            100% { width: 100%; }
+          }
+        `}</style>
     </div>
   );
 
@@ -243,6 +261,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
         <p className="text-slate-500 font-handwritten text-2xl">Multiplayer Drawing</p>
       </div>
 
+      {lobbyMode === 'WAKING_SERVER' && renderWakingServer()}
       {lobbyMode === 'LOADING' && renderLoading()}
       {lobbyMode === 'HOME' && renderLobbyHome()}
       {lobbyMode === 'HOST' && renderHostForm()}

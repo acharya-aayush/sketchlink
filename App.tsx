@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { GamePhase, ChatMessage, TOOLS, ToolType, COLORS, STROKE_WIDTHS, DrawPoint, GameEvent, FillAction, Player, GameSettings, GalleryItem } from './types';
 import { CanvasBoard, CanvasBoardHandle } from './components/CanvasBoard';
 import { Button } from './components/Button';
-import { multiplayer } from './services/multiplayer';
+import { multiplayer, wakeUpServer } from './services/multiplayer';
 import { AVATARS } from './constants';
 import { PlayerList } from './components/PlayerList';
 import { ChatSidebar } from './components/ChatSidebar';
@@ -28,7 +28,8 @@ const App: React.FC = () => {
   const [joinError, setJoinError] = useState('');
 
   // Host Settings State
-  const [lobbyMode, setLobbyMode] = useState<'HOME' | 'HOST' | 'JOIN' | 'LOADING'>('HOME');
+  const [lobbyMode, setLobbyMode] = useState<'HOME' | 'HOST' | 'JOIN' | 'LOADING' | 'WAKING_SERVER'>('WAKING_SERVER');
+  const [serverReady, setServerReady] = useState(false);
   const [gameSettings, setGameSettings] = useState<GameSettings>({
       rounds: 3,
       drawTime: 60,
@@ -69,12 +70,23 @@ const App: React.FC = () => {
 
   // --- Initialization & URL Handling ---
   useEffect(() => {
-    const hash = window.location.hash;
-    if (hash.startsWith('#room=')) {
+    // Wake up the server first (Render free tier sleeps)
+    const initServer = async () => {
+      await wakeUpServer();
+      setServerReady(true);
+      
+      // Check for room code in URL
+      const hash = window.location.hash;
+      if (hash.startsWith('#room=')) {
         const code = hash.replace('#room=', '');
         setRoomCode(code);
         setLobbyMode('JOIN');
-    }
+      } else {
+        setLobbyMode('HOME');
+      }
+    };
+    
+    initServer();
     audioService.init();
   }, []);
 

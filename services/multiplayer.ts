@@ -10,7 +10,29 @@ const isLocalhost = typeof window !== 'undefined' &&
 
 const SERVER_URL = isLocalhost 
   ? 'http://localhost:3001' 
-  : 'https://sketchlink-server.onrender.com'; 
+  : 'https://sketchlink-server.onrender.com';
+
+// Wake up the server (Render free tier sleeps after 15 min)
+export async function wakeUpServer(): Promise<boolean> {
+  if (isLocalhost) return true; // No need to wake up localhost
+  
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    
+    const response = await fetch(`${SERVER_URL}/health`, { 
+      signal: controller.signal,
+      mode: 'cors'
+    });
+    clearTimeout(timeoutId);
+    return response.ok;
+  } catch (error) {
+    console.log('Server wake-up attempt:', error);
+    // Even if fetch fails, the server might be waking up
+    // Socket.io will retry connection anyway
+    return false;
+  }
+}
 
 class MultiplayerService {
   private socket: Socket | null = null;
