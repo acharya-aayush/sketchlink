@@ -1,4 +1,4 @@
-# 🎨 SketchLink
+# SketchLink
 
 A real-time multiplayer drawing and guessing game built with React, Socket.io, and Node.js. Play with friends, draw creative sketches, and guess what others are drawing!
 
@@ -7,7 +7,7 @@ A real-time multiplayer drawing and guessing game built with React, Socket.io, a
 ![Socket.io](https://img.shields.io/badge/Socket.io-4.x-010101?style=flat-square&logo=socket.io)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript)
 
-## ✨ Features
+## Features
 
 - 🎮 **Real-time Multiplayer** - Play with friends in the same room
 - 🖌️ **Drawing Canvas** - Smooth drawing experience with multiple colors and brush sizes
@@ -19,7 +19,7 @@ A real-time multiplayer drawing and guessing game built with React, Socket.io, a
 - 🖼️ **Gallery** - View saved drawings from completed rounds
 - 😄 **Emoji Reactions** - React to drawings with floating emojis
 
-## 🎯 How to Play
+## How to Play
 
 1. **Create or Join a Room** - Enter your name and create a new room or join with a room code
 2. **Wait for Players** - Share the room code with friends
@@ -27,7 +27,7 @@ A real-time multiplayer drawing and guessing game built with React, Socket.io, a
 4. **Draw & Guess** - Take turns drawing words while others guess
 5. **Score Points** - Faster guesses = more points!
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -60,7 +60,7 @@ cp .env.example .env
 
 See [documentation.md](./documentation.md) for detailed configuration options.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Category | Technology |
 |----------|------------|
@@ -70,7 +70,7 @@ See [documentation.md](./documentation.md) for detailed configuration options.
 | Real-time | Socket.io |
 | Hosting | Netlify (Frontend), Render (Backend) |
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 SketchLink/
@@ -89,7 +89,7 @@ SketchLink/
 └── constants.ts         # Game constants
 ```
 
-## 🎮 Game Modes & Settings
+## Game Modes & Settings
 
 | Setting | Options | Default |
 |---------|---------|---------|
@@ -98,7 +98,7 @@ SketchLink/
 | Difficulty | Easy, Medium, Hard | Medium |
 | Custom Words | Comma-separated list | - |
 
-## 🌐 Deployment
+## Deployment
 
 ### Frontend (Netlify)
 The frontend auto-deploys from GitHub to Netlify.
@@ -106,9 +106,9 @@ The frontend auto-deploys from GitHub to Netlify.
 ### Backend (Render)
 The game server runs on Render's free tier.
 
-> ⚠️ **Note**: Free tier servers may sleep after 15 minutes of inactivity. The app includes an auto-wake feature.
+> **Note**: Free tier servers may sleep after 15 minutes of inactivity. The app includes an auto-wake feature.
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
@@ -118,19 +118,17 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📝 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 👨‍💻 Author
-
+## Author
 **Aayush Acharya**
 - GitHub: [@acharya-aayush](https://github.com/acharya-aayush)
+-Linkedin: [acharyaaayush](https://linkedin.com/in/acharyaaayush)
 
-## 🙏 Acknowledgments
-
+## Acknowledgments
 - Inspired by Skribbl.io and similar drawing games
-- Built with ❤️ using React and Socket.io
 
 ---
 
