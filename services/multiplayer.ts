@@ -45,9 +45,35 @@ class MultiplayerService {
 
   public connect(name: string, avatar: string, roomId?: string): Promise<string> {
     return new Promise((resolve, reject) => {
-      this.socket = io(SERVER_URL);
+      // Disconnect any existing connection first
+      if (this.socket) {
+        this.socket.disconnect();
+        this.socket = null;
+      }
+
+      // Configure Socket.io for better mobile compatibility
+      this.socket = io(SERVER_URL, {
+        transports: ['polling', 'websocket'], // Start with polling, upgrade to websocket
+        timeout: 20000,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        forceNew: true, // Force a new connection
+      });
+
+      let resolved = false;
+
+      // Add timeout for initial connection
+      const connectionTimeout = setTimeout(() => {
+        if (!resolved && this.socket && !this.socket.connected) {
+          this.socket.disconnect();
+          reject("Connection timeout - server may be waking up. Please try again.");
+        }
+      }, 25000);
 
       this.socket.on('connect', () => {
+        clearTimeout(connectionTimeout);
+        console.log('Socket connected:', this.socket?.id);
         this.playerId = this.socket?.id || '';
         
         if (roomId) {
@@ -57,9 +83,10 @@ class MultiplayerService {
         }
       });
 
-      this.socket.on('room_joined', ({ roomId, playerId }) => {
+      this.socket.on('room_joined', ({ roomId: joinedRoomId, playerId }) => {
+          resolved = true;
           this.playerId = playerId;
-          resolve(roomId);
+          resolve(joinedRoomId);
       });
 
       this.socket.on('game_event', (event: GameEvent) => {
@@ -67,12 +94,18 @@ class MultiplayerService {
       });
 
       this.socket.on('error_message', (msg: string) => {
-          console.error(msg);
+          console.error('Server error:', msg);
+          resolved = true;
+          clearTimeout(connectionTimeout);
           reject(msg);
       });
 
       this.socket.on('connect_error', (err) => {
-          reject("Could not connect to server");
+          console.error('Connection error:', err);
+          if (!resolved) {
+            clearTimeout(connectionTimeout);
+            reject("Could not connect to server. Please check your internet connection.");
+          }
       });
     });
   }
