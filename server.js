@@ -63,6 +63,9 @@ class GameRoom {
     this.timerInterval = null;
     this.nextTurnTimeout = null;
     this.currentDrawerIndex = 0;
+    
+    // Store current drawing for late joiners
+    this.currentDrawing = []; // Array of draw events (strokes, fills, clears)
   }
 
   addPlayer(player) {
@@ -74,16 +77,42 @@ class GameRoom {
     if (index !== -1) {
       const wasHost = this.players[index].isHost;
       const wasDrawer = this.players[index].isDrawer;
+      const playerName = this.players[index].name;
       this.players.splice(index, 1);
 
-      // Migrate Host
+      // Migrate Host to next available player
       if (wasHost && this.players.length > 0) {
         this.players[0].isHost = true;
+        // Notify room about host change
+        this.broadcast('CHAT_MESSAGE', {
+          id: Date.now().toString(),
+          sender: 'System',
+          text: `${this.players[0].name} is now the host`,
+          isSystem: true,
+          timestamp: Date.now()
+        });
+        console.log(`Host migrated to ${this.players[0].name} in room ${this.id}`);
       }
       
-      // Handle Drawer Disconnect
+      // Notify about player leaving
+      if (this.players.length > 0) {
+        this.broadcast('CHAT_MESSAGE', {
+          id: Date.now().toString(),
+          sender: 'System',
+          text: `${playerName} left the game`,
+          isSystem: true,
+          timestamp: Date.now()
+        });
+      }
+      
+      // Handle Drawer Disconnect - adjust drawer index
       if (wasDrawer && this.players.length > 0 && this.phase !== 'LOBBY') {
-         this.endRound(); // End round immediately if drawer leaves
+        // Adjust currentDrawerIndex if needed
+        if (this.currentDrawerIndex >= this.players.length) {
+          this.currentDrawerIndex = 0;
+        }
+        this.currentDrawing = []; // Clear drawing state
+        this.endRound(); // End round immediately if drawer leaves
       }
     }
   }
@@ -130,6 +159,7 @@ class GameRoom {
     this.revealedIndices.clear();
     this.phase = 'DRAWING';
     this.timeLeft = this.settings.drawTime;
+    this.currentDrawing = []; // Clear drawing state for new round
     
     this.broadcast('CLEAR_CANVAS');
     this.broadcastState();
@@ -216,6 +246,7 @@ class GameRoom {
       this.phase = 'WORD_SELECT';
       this.currentWord = '';
       this.revealedIndices.clear();
+      this.currentDrawing = []; // Clear drawing state for next turn
       
       this.broadcast('CLEAR_CANVAS');
       this.broadcastState();
@@ -287,9 +318,25 @@ io.on('connection', (socket) => {
       room.broadcastState();
       room.broadcast('SYNC_SETTINGS', room.settings);
       
+      // Send gallery to late joiner
       if (room.gallery.length > 0) {
           socket.emit('game_event', { type: 'SYNC_GALLERY', payload: room.gallery });
       }
+      
+      // Send current drawing state to late joiner (if game in progress)
+      if (room.phase === 'DRAWING' && room.currentDrawing.length > 0) {
+          console.log(`Sending ${room.currentDrawing.length} drawing events to late joiner ${name}`);
+          socket.emit('game_event', { type: 'SYNC_DRAWING', payload: room.currentDrawing });
+      }
+      
+      // Notify room about new player
+      room.broadcast('CHAT_MESSAGE', {
+        id: Date.now().toString(),
+        sender: 'System',
+        text: `${name} joined the game`,
+        isSystem: true,
+        timestamp: Date.now()
+      });
   });
 
   socket.on('update_settings', (settings) => {
@@ -359,6 +406,26 @@ io.on('connection', (socket) => {
           room.gallery.push(event.payload);
           room.broadcast('SYNC_GALLERY', room.gallery);
           return;
+      }
+      
+      // Store drawing events for late joiners
+      if (event.type === 'DRAW_POINT') {
+          room.currentDrawing.push(event);
+      }
+      
+      // Handle FILL events - store for late joiners
+      if (event.type === 'FILL_CANVAS') {
+          room.currentDrawing.push(event);
+      }
+      
+      // Handle END_STROKE - mark the end of a stroke in history
+      if (event.type === 'END_STROKE') {
+          room.currentDrawing.push(event);
+      }
+      
+      // Handle CLEAR_CANVAS from drawer
+      if (event.type === 'CLEAR_CANVAS') {
+          room.currentDrawing = []; // Clear stored drawing
       }
 
       // Default: Broadcast to everyone else in room

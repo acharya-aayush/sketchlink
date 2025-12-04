@@ -103,7 +103,7 @@ const App: React.FC = () => {
     const unsubscribe = multiplayer.onEvent((event: GameEvent) => {
       // Filter echoes for drawing events
       if (isMyTurn) {
-        const echoEvents = ['DRAW_POINT', 'END_STROKE', 'FILL_CANVAS', 'UNDO_ACTION', 'CLEAR_CANVAS'];
+        const echoEvents = ['DRAW', 'DRAW_POINT', 'STROKE_END', 'END_STROKE', 'FILL', 'FILL_CANVAS', 'UNDO_ACTION', 'CLEAR_CANVAS'];
         // @ts-ignore
         if (echoEvents.includes(event.type)) return;
       }
@@ -140,12 +140,30 @@ const App: React.FC = () => {
         case 'SYNC_GALLERY':
           setGallery(event.payload);
           break;
+        case 'SYNC_DRAWING':
+          // Late joiner: replay all drawing events
+          console.log('Replaying drawing for late joiner:', event.payload.length, 'events');
+          if (event.payload && event.payload.length > 0) {
+            event.payload.forEach((drawEvent: GameEvent) => {
+              if (drawEvent.type === 'DRAW' || drawEvent.type === 'DRAW_POINT') {
+                canvasRef.current?.drawRemotePoint(drawEvent.payload);
+              } else if (drawEvent.type === 'STROKE_END' || drawEvent.type === 'END_STROKE') {
+                canvasRef.current?.endRemoteStroke();
+              } else if (drawEvent.type === 'FILL' || drawEvent.type === 'FILL_CANVAS') {
+                canvasRef.current?.fill(drawEvent.payload.x, drawEvent.payload.y, drawEvent.payload.color);
+              }
+            });
+          }
+          break;
+        case 'DRAW':
         case 'DRAW_POINT':
           canvasRef.current?.drawRemotePoint(event.payload);
           break;
+        case 'STROKE_END':
         case 'END_STROKE':
           canvasRef.current?.endRemoteStroke();
           break;
+        case 'FILL':
         case 'FILL_CANVAS':
           canvasRef.current?.fill(event.payload.x, event.payload.y, event.payload.color);
           break;
