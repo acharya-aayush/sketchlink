@@ -1,6 +1,6 @@
 # SketchLink
 
-A real-time multiplayer drawing and guessing game built with React, Socket.io, and Node.js. Play with friends, draw creative sketches, and guess what others are drawing!
+A real-time multiplayer drawing and guessing game built with React, Socket.io, and Node.js.  Play with friends, draw creative sketches, and guess what others are drawing!
 
 ![SketchLink](https://img.shields.io/badge/SketchLink-Play%20Now-6366f1?style=for-the-badge)
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react)
