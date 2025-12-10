@@ -219,17 +219,6 @@ type GameEventType =
    - First request after sleep takes ~30s
    - App includes auto-wake feature
 
-### Alternative Hosting Options
-
-| Provider | Frontend | Backend | Free Tier |
-|----------|----------|---------|-----------|
-| Netlify | ✅ | ❌ | Generous |
-| Vercel | ✅ | ❌ | Limited |
-| Render | ✅ | ✅ | Sleep after 15min |
-| Railway | ✅ | ✅ | $5 credit |
-| Fly.io | ✅ | ✅ | Requires CC |
-| Cloudflare Pages | ✅ | ❌ | Unlimited |
-
 ---
 
 ## Troubleshooting
