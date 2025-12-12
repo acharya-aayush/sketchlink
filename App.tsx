@@ -15,6 +15,18 @@ import { ReactionOverlay, ReactionOverlayHandle } from './components/ReactionOve
 import { Gallery } from './components/Gallery';
 
 const App: React.FC = () => {
+  // Track if we're on mobile (state-based for proper re-render)
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  
+  // Listen for resize to update mobile state
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Multiplayer State
   const [isConnected, setIsConnected] = useState(false);
   
@@ -468,21 +480,24 @@ const App: React.FC = () => {
   );
 
   const renderMobileHeader = () => (
-      <div className="md:hidden flex justify-between items-center p-3 bg-white border-b border-slate-200 shrink-0 shadow-sm z-30">
+      <div className="md:hidden flex justify-between items-center p-2 bg-white border-b border-slate-200 shrink-0 shadow-sm z-30">
         <div className="flex items-center gap-2">
-           <button onClick={handleLeave} className="text-red-400 font-bold text-xs border border-red-200 px-2 py-1 rounded">EXIT</button>
-           <div className="flex items-center gap-1 bg-slate-100 px-2 py-1 rounded-full border border-slate-200">
-             <span className="text-lg leading-none">{currentDrawer?.avatar || '?'}</span>
-             <span className="text-xs font-bold text-slate-600 max-w-[80px] truncate">{currentDrawer?.name || 'Waiting'}</span>
-           </div>
+           <button onClick={handleLeave} className="text-red-400 font-bold text-xs border border-red-200 px-2 py-1 rounded active:scale-95 transition-transform">EXIT</button>
         </div>
-        <div className="flex flex-col items-end">
-             <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+        <div className="flex flex-col items-center flex-1 mx-2">
+             <div className="text-xs text-slate-400 uppercase tracking-wide">
+                {phase === GamePhase.DRAWING ? 'Guess the word' : phase === GamePhase.WORD_SELECT ? 'Choosing...' : ''}
+             </div>
+             <div className="font-marker text-lg text-slate-900 tracking-widest leading-tight">
                 {isMyTurn ? currentWord : (phase === GamePhase.DRAWING ? displayWord : (phase === GamePhase.ROUND_OVER ? currentWord : '...'))}
              </div>
-             {phase === GamePhase.DRAWING && (
-                 <div className={`font-marker text-xl leading-none ${timeLeft < 10 ? 'text-red-500' : 'text-slate-700'}`}>{timeLeft}s</div>
-             )}
+        </div>
+        <div className="flex items-center gap-2">
+            {phase === GamePhase.DRAWING && (
+                <div className={`font-marker text-xl leading-none px-2 py-1 rounded-lg ${timeLeft <= 10 ? 'text-red-500 bg-red-50 animate-pulse' : 'text-slate-700 bg-slate-100'}`}>
+                  {timeLeft}s
+                </div>
+            )}
         </div>
       </div>
   );
@@ -508,67 +523,44 @@ const App: React.FC = () => {
              onJoin={handleJoin} onStartGame={handleStartGame}
            />
        ) : (
-           <div className="flex flex-col md:flex-row h-full relative z-10">
-               {/* 1. LEFT SIDEBAR (LEADERBOARD) - Desktop */}
-               <PlayerList 
-                 players={players} 
-                 drawerId={drawerId} 
-                 onLeave={handleLeave} 
-                 feedbackMap={playerFeedback}
-               />
-
-               {/* 2. CENTER AREA */}
-               <main className="flex-1 flex flex-col min-w-0 bg-slate-200 relative">
+           <div className="flex flex-col h-full relative z-10">
+               {/* Conditionally render ONLY ONE layout to ensure single canvas instance */}
+               {isMobile ? (
+               /* MOBILE LAYOUT (Skribbl.io style) */
+               <div className="flex flex-col h-full">
+                   {/* Mobile Header */}
                    {renderMobileHeader()}
                    
-                   <div className="flex-1 relative p-2 md:p-4 flex flex-col min-h-0">
-                        {/* Desktop Game Info Header */}
-                        {phase !== GamePhase.LOBBY && phase !== GamePhase.GAME_OVER && (
-                             <div className="hidden md:flex absolute top-6 left-6 right-6 justify-between pointer-events-none z-20">
-                                 <div className="bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-md border border-slate-300 flex items-center gap-2">
-                                    <span className="text-slate-400 font-bold text-xs uppercase tracking-wider">Word</span>
-                                    <span className="font-marker text-xl text-slate-900 tracking-widest min-w-[100px] text-center">
-                                        {displayWord || '...'}
-                                    </span>
-                                 </div>
-                                 <div className="flex gap-2">
-                                     <div className="bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-md border border-slate-300 flex items-center gap-2">
-                                        <span className="text-xl">{currentDrawer?.avatar || '⏳'}</span>
-                                        <span className="font-bold text-slate-700 text-sm">{currentDrawer?.name ? `${currentDrawer.name}'s Turn` : 'Waiting...'}</span>
-                                     </div>
-                                     {phase === GamePhase.DRAWING && (
-                                         <div className={`bg-white/90 backdrop-blur w-12 h-10 flex items-center justify-center rounded-full shadow-md border border-slate-300 font-marker text-xl ${timeLeft < 10 ? 'text-red-500' : 'text-slate-700'}`}>
-                                            {timeLeft}
-                                         </div>
-                                     )}
-                                 </div>
-                             </div>
-                        )}
-
-                        <div className="flex-1 w-full bg-white rounded-xl shadow-lg border-4 border-slate-300 overflow-hidden relative">
-                            <CanvasBoard 
-                                ref={canvasRef} 
-                                color={selectedColor} 
-                                strokeWidth={selectedWidth} 
-                                tool={activeTool}
-                                disabled={!isMyTurn || phase !== GamePhase.DRAWING}
-                                onDrawPoint={handleDrawPoint}
-                                onStrokeEnd={handleStrokeEnd}
-                                onFill={handleFill}
-                            />
-                            
-                            {phase === GamePhase.LOBBY && renderLobbyWaiting()}
-                            {phase === GamePhase.WORD_SELECT && renderWordSelect()}
-                            {phase === GamePhase.ROUND_OVER && renderScoreboard()}
-                            
-                            {phase === GamePhase.DRAWING && !isMyTurn && (
-                                <div className="absolute bottom-4 right-4 bg-yellow-100 text-yellow-800 text-xs px-3 py-1 rounded-full border border-yellow-300 pointer-events-none opacity-80 z-10 font-bold shadow-sm">
-                                    You are guessing
-                                </div>
-                            )}
-                        </div>
+                   {/* Canvas Area - takes most of the screen */}
+                   <div className="flex-1 relative p-2 min-h-0 flex items-center justify-center">
+                       <div className="w-full max-h-full bg-white rounded-xl shadow-lg border-2 border-slate-200 overflow-hidden relative" style={{ aspectRatio: '16/9' }}>
+                           <CanvasBoard 
+                               ref={canvasRef} 
+                               color={selectedColor} 
+                               strokeWidth={selectedWidth} 
+                               tool={activeTool}
+                               disabled={!isMyTurn || phase !== GamePhase.DRAWING}
+                               onDrawPoint={handleDrawPoint}
+                               onStrokeEnd={handleStrokeEnd}
+                               onFill={handleFill}
+                           />
+                           
+                           {phase === GamePhase.LOBBY && renderLobbyWaiting()}
+                           {phase === GamePhase.WORD_SELECT && renderWordSelect()}
+                           {phase === GamePhase.ROUND_OVER && renderScoreboard()}
+                           
+                           {/* Drawer indicator */}
+                           {phase === GamePhase.DRAWING && (
+                               <div className="absolute top-2 left-2 bg-white/90 backdrop-blur px-2 py-1 rounded-full border border-slate-200 flex items-center gap-1 text-xs shadow-sm z-10">
+                                   <span>{currentDrawer?.avatar || '?'}</span>
+                                   <span className="font-bold text-slate-600 truncate max-w-[60px]">{currentDrawer?.name}</span>
+                                   <span className="text-slate-400">is drawing</span>
+                               </div>
+                           )}
+                       </div>
                    </div>
-
+                   
+                   {/* Drawing Toolbar (only when it's my turn) */}
                    {phase !== GamePhase.LOBBY && phase !== GamePhase.GAME_OVER && (
                        <GameToolbar 
                          selectedColor={selectedColor} setSelectedColor={setSelectedColor}
@@ -578,17 +570,134 @@ const App: React.FC = () => {
                          isMyTurn={isMyTurn}
                        />
                    )}
-               </main>
+                   
+                   {/* Bottom Panel: Leaderboard + Chat side by side */}
+                   <div className="flex flex-row h-40 border-t border-slate-200 shrink-0">
+                       {/* Compact Leaderboard */}
+                       <div className="w-2/5 border-r border-slate-200">
+                           <PlayerList 
+                             players={players} 
+                             drawerId={drawerId} 
+                             onLeave={handleLeave} 
+                             feedbackMap={playerFeedback}
+                             isMobileCompact={true}
+                           />
+                       </div>
+                       {/* Compact Chat */}
+                       <div className="w-3/5">
+                           <ChatSidebar 
+                             roomCode={roomCode}
+                             messages={chatMessages}
+                             inputMessage={inputMessage}
+                             setInputMessage={setInputMessage}
+                             onSendMessage={handleSendMessage}
+                             isMyTurn={isMyTurn}
+                             phase={phase}
+                             isMobileCompact={true}
+                           />
+                       </div>
+                   </div>
+                   
+                   {/* Guess Input - Fixed at bottom */}
+                   <form onSubmit={handleSendMessage} className="p-2 bg-white border-t border-slate-200 flex gap-2 shrink-0 safe-area-bottom">
+                       <input 
+                         className="flex-1 border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-blue-400 bg-white text-slate-900 placeholder:text-slate-400 text-base"
+                         placeholder={isMyTurn ? "You are drawing..." : "Type your guess here..."}
+                         value={inputMessage}
+                         onChange={e => setInputMessage(e.target.value)}
+                         disabled={isMyTurn || phase === GamePhase.ROUND_OVER}
+                       />
+                       <button 
+                         disabled={isMyTurn} 
+                         className="bg-blue-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-600 disabled:opacity-50 shadow-sm active:scale-95 transition-transform"
+                       >
+                         Send
+                       </button>
+                   </form>
+               </div>
+               ) : (
+               /* DESKTOP LAYOUT */
+               <div className="flex flex-row h-full">
+                   {/* 1. LEFT SIDEBAR (LEADERBOARD) */}
+                   <PlayerList 
+                     players={players} 
+                     drawerId={drawerId} 
+                     onLeave={handleLeave} 
+                     feedbackMap={playerFeedback}
+                   />
 
-               <ChatSidebar 
-                 roomCode={roomCode}
-                 messages={chatMessages}
-                 inputMessage={inputMessage}
-                 setInputMessage={setInputMessage}
-                 onSendMessage={handleSendMessage}
-                 isMyTurn={isMyTurn}
-                 phase={phase}
-               />
+                   {/* 2. CENTER AREA */}
+                   <main className="flex-1 flex flex-col min-w-0 bg-slate-200 relative">
+                       <div className="flex-1 relative p-4 flex flex-col min-h-0">
+                            {/* Desktop Game Info Header */}
+                            {phase !== GamePhase.LOBBY && phase !== GamePhase.GAME_OVER && (
+                                 <div className="absolute top-6 left-6 right-6 flex justify-between pointer-events-none z-20">
+                                     <div className="bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-md border border-slate-300 flex items-center gap-2">
+                                        <span className="text-slate-400 font-bold text-xs uppercase tracking-wider">Word</span>
+                                        <span className="font-marker text-xl text-slate-900 tracking-widest min-w-[100px] text-center">
+                                            {displayWord || '...'}
+                                        </span>
+                                     </div>
+                                     <div className="flex gap-2">
+                                         <div className="bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-md border border-slate-300 flex items-center gap-2">
+                                            <span className="text-xl">{currentDrawer?.avatar || '⏳'}</span>
+                                            <span className="font-bold text-slate-700 text-sm">{currentDrawer?.name ? `${currentDrawer.name}'s Turn` : 'Waiting...'}</span>
+                                         </div>
+                                         {phase === GamePhase.DRAWING && (
+                                             <div className={`bg-white/90 backdrop-blur w-12 h-10 flex items-center justify-center rounded-full shadow-md border border-slate-300 font-marker text-xl ${timeLeft < 10 ? 'text-red-500' : 'text-slate-700'}`}>
+                                                {timeLeft}
+                                             </div>
+                                         )}
+                                     </div>
+                                 </div>
+                            )}
+
+                            <div className="w-full h-full bg-white rounded-xl shadow-lg border-4 border-slate-300 overflow-hidden relative" style={{ aspectRatio: '16/9' }}>
+                                <CanvasBoard 
+                                    ref={canvasRef} 
+                                    color={selectedColor} 
+                                    strokeWidth={selectedWidth} 
+                                    tool={activeTool}
+                                    disabled={!isMyTurn || phase !== GamePhase.DRAWING}
+                                    onDrawPoint={handleDrawPoint}
+                                    onStrokeEnd={handleStrokeEnd}
+                                    onFill={handleFill}
+                                />
+                                
+                                {phase === GamePhase.LOBBY && renderLobbyWaiting()}
+                                {phase === GamePhase.WORD_SELECT && renderWordSelect()}
+                                {phase === GamePhase.ROUND_OVER && renderScoreboard()}
+                                
+                                {phase === GamePhase.DRAWING && !isMyTurn && (
+                                    <div className="absolute bottom-4 right-4 bg-yellow-100 text-yellow-800 text-xs px-3 py-1 rounded-full border border-yellow-300 pointer-events-none opacity-80 z-10 font-bold shadow-sm">
+                                        You are guessing
+                                    </div>
+                                )}
+                            </div>
+                       </div>
+
+                       {phase !== GamePhase.LOBBY && phase !== GamePhase.GAME_OVER && (
+                           <GameToolbar 
+                             selectedColor={selectedColor} setSelectedColor={setSelectedColor}
+                             selectedWidth={selectedWidth} setSelectedWidth={setSelectedWidth}
+                             activeTool={activeTool} setActiveTool={setActiveTool}
+                             onUndo={handleUndo} onClear={handleClearCanvas}
+                             isMyTurn={isMyTurn}
+                           />
+                       )}
+                   </main>
+
+                   <ChatSidebar 
+                     roomCode={roomCode}
+                     messages={chatMessages}
+                     inputMessage={inputMessage}
+                     setInputMessage={setInputMessage}
+                     onSendMessage={handleSendMessage}
+                     isMyTurn={isMyTurn}
+                     phase={phase}
+                   />
+               </div>
+               )}
            </div>
        )}
     </div>

@@ -219,18 +219,6 @@ type GameEventType =
    - First request after sleep takes ~30s
    - App includes auto-wake feature
 
-### Alternative Hosting Options
-
-| Provider | Frontend | Backend | Free Tier |
-|----------|----------|---------|-----------|
-| Netlify | ✅ | ❌ | Generous |
-| Vercel | ✅ | ❌ | Limited |
-| Render | ✅ | ✅ | Sleep after 15min |
-| Railway | ✅ | ✅ | $5 credit |
-| Fly.io | ✅ | ✅ | Requires CC |
-| Cloudflare Pages | ✅ | ❌ | Unlimited |
-
----
 
 ## Troubleshooting
 
@@ -252,9 +240,6 @@ type GameEventType =
 - **Cause**: Socket disconnected
 - **Solution**: Check network, refresh page
 
-#### MIME type errors on Netlify
-- **Cause**: Missing `netlify.toml` configuration
-- **Solution**: Ensure `netlify.toml` exists with proper headers
 
 ### Debug Mode
 

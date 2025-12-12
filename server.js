@@ -4,7 +4,25 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 
 const app = express();
-app.use(cors());
+
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = [
+  'https://sketchlinks.vercel.app',
+  'https://sketchlink.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000'
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.) in dev
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+}));
 
 // Health check endpoint for Render
 app.get('/', (req, res) => {
@@ -18,10 +36,49 @@ app.get('/health', (req, res) => {
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // Allow connections from anywhere (for now)
+    origin: ALLOWED_ORIGINS,
     methods: ["GET", "POST"]
   }
 });
+
+// --- Security: Rate Limiting ---
+const rateLimitMap = new Map(); // socketId -> { count, lastReset }
+const RATE_LIMIT = 100; // max events per second (drawing needs high limit)
+const RATE_WINDOW = 1000; // 1 second window
+
+function checkRateLimit(socketId) {
+  const now = Date.now();
+  let entry = rateLimitMap.get(socketId);
+  
+  if (!entry || now - entry.lastReset > RATE_WINDOW) {
+    entry = { count: 0, lastReset: now };
+    rateLimitMap.set(socketId, entry);
+  }
+  
+  entry.count++;
+  return entry.count <= RATE_LIMIT;
+}
+
+// --- Security: Input Sanitization ---
+function sanitizeString(str, maxLength = 200) {
+  if (typeof str !== 'string') return '';
+  return str
+    .slice(0, maxLength)
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
+
+function validatePlayerName(name) {
+  if (typeof name !== 'string') return false;
+  const trimmed = name.trim();
+  if (trimmed.length < 1 || trimmed.length > 20) return false;
+  // Allow most characters but block obvious XSS patterns
+  // The sanitizeString function will escape HTML entities anyway
+  if (/<|>|script|javascript:/i.test(trimmed)) return false;
+  return true;
+}
 
 // --- Game Constants (Moved from Frontend) ---
 const WORD_LIBRARY = {
@@ -122,13 +179,29 @@ class GameRoom {
   }
 
   broadcastState() {
-    this.broadcast('SYNC_STATE', {
+    const drawer = this.players[this.currentDrawerIndex];
+    const baseState = {
         phase: this.phase,
-        currentWord: this.currentWord, // Client hides this if not drawer
         maskedWord: this.getMaskedWord(),
         timeLeft: this.timeLeft,
-        drawerId: this.players[this.currentDrawerIndex]?.id
+        drawerId: drawer?.id
+    };
+    
+    // Send to each player individually - drawer gets the word, others don't
+    this.players.forEach(player => {
+      const socket = io.sockets.sockets.get(player.socketId);
+      if (socket) {
+        socket.emit('game_event', {
+          type: 'SYNC_STATE',
+          payload: {
+            ...baseState,
+            // SECURITY: Only send currentWord to the drawer
+            currentWord: (player.id === drawer?.id) ? this.currentWord : ''
+          }
+        });
+      }
     });
+    
     this.broadcast('SYNC_PLAYERS', this.players);
   }
 
@@ -270,14 +343,23 @@ io.on('connection', (socket) => {
   let currentRoomId = null;
 
   socket.on('create_room', ({ name, avatar }) => {
-      const roomId = Math.random().toString(36).substr(2, 6).toUpperCase();
+      // SECURITY: Validate player name
+      if (!validatePlayerName(name)) {
+        socket.emit('error_message', 'Invalid name. Use 1-20 alphanumeric characters.');
+        return;
+      }
+      
+      const sanitizedName = sanitizeString(name.trim(), 20);
+      const sanitizedAvatar = sanitizeString(avatar, 10);
+      
+      const roomId = Math.random().toString(36).substr(2, 8).toUpperCase(); // 8 chars for better security
       const room = new GameRoom(roomId);
       
       const player = {
           id: socket.id,
           socketId: socket.id,
-          name,
-          avatar,
+          name: sanitizedName,
+          avatar: sanitizedAvatar,
           score: 0,
           isHost: true, // First player is host
           isDrawer: true
@@ -294,17 +376,32 @@ io.on('connection', (socket) => {
   });
 
   socket.on('join_room', ({ roomId, name, avatar }) => {
+      // SECURITY: Validate player name
+      if (!validatePlayerName(name)) {
+        socket.emit('error_message', 'Invalid name. Use 1-20 alphanumeric characters.');
+        return;
+      }
+      
       const room = rooms.get(roomId);
       if (!room) {
           socket.emit('error_message', 'Room not found');
           return;
       }
+      
+      // SECURITY: Limit players per room
+      if (room.players.length >= 12) {
+          socket.emit('error_message', 'Room is full (max 12 players)');
+          return;
+      }
+
+      const sanitizedName = sanitizeString(name.trim(), 20);
+      const sanitizedAvatar = sanitizeString(avatar, 10);
 
       const player = {
           id: socket.id,
           socketId: socket.id,
-          name,
-          avatar,
+          name: sanitizedName,
+          avatar: sanitizedAvatar,
           score: 0,
           isHost: false,
           isDrawer: false
@@ -341,35 +438,101 @@ io.on('connection', (socket) => {
 
   socket.on('update_settings', (settings) => {
       const room = rooms.get(currentRoomId);
-      if (room) {
-          room.settings = { ...room.settings, ...settings };
-          room.broadcast('SYNC_SETTINGS', room.settings);
+      if (!room) return;
+      
+      // SECURITY: Only host can update settings
+      const player = room.players.find(p => p.socketId === socket.id);
+      if (!player?.isHost) {
+          socket.emit('error_message', 'Only the host can change settings');
+          return;
       }
+      
+      // SECURITY: Validate settings bounds
+      const safeSettings = {
+          rounds: Math.min(10, Math.max(1, parseInt(settings.rounds) || 3)),
+          drawTime: Math.min(180, Math.max(30, parseInt(settings.drawTime) || 60)),
+          difficulty: ['Easy', 'Medium', 'Hard'].includes(settings.difficulty) ? settings.difficulty : 'Medium',
+          customWords: sanitizeString(settings.customWords || '', 500)
+      };
+      
+      room.settings = { ...room.settings, ...safeSettings };
+      room.broadcast('SYNC_SETTINGS', room.settings);
   });
 
   socket.on('start_game', () => {
       const room = rooms.get(currentRoomId);
-      if (room) room.startGame();
+      if (!room) return;
+      
+      // SECURITY: Only host can start game
+      const player = room.players.find(p => p.socketId === socket.id);
+      if (!player?.isHost) {
+          socket.emit('error_message', 'Only the host can start the game');
+          return;
+      }
+      
+      // Need at least 2 players to play
+      if (room.players.length < 2) {
+          socket.emit('error_message', 'Need at least 2 players to start');
+          return;
+      }
+      
+      room.startGame();
   });
 
   socket.on('get_words', (callback) => {
       const room = rooms.get(currentRoomId);
-      if (room) callback(room.getWordOptions());
+      if (room) {
+          const words = room.getWordOptions();
+          room.pendingWordOptions = words; // Store for validation
+          callback(words);
+      }
   });
 
   socket.on('select_word', (word) => {
       const room = rooms.get(currentRoomId);
-      if (room) room.selectWord(word);
+      if (!room) return;
+      
+      // SECURITY: Only current drawer can select word
+      const player = room.players.find(p => p.socketId === socket.id);
+      const drawer = room.players[room.currentDrawerIndex];
+      if (!player || player.id !== drawer?.id) {
+          socket.emit('error_message', 'Only the drawer can select a word');
+          return;
+      }
+      
+      // SECURITY: Validate word is from the provided options
+      // Store word options temporarily when get_words is called
+      if (room.pendingWordOptions && !room.pendingWordOptions.includes(word)) {
+          socket.emit('error_message', 'Invalid word selection');
+          return;
+      }
+      
+      room.selectWord(word);
   });
 
   // Relay Drawing Events
   socket.on('game_event', (event) => {
+      // SECURITY: Rate limiting
+      if (!checkRateLimit(socket.id)) {
+          socket.emit('error_message', 'Slow down! Too many actions.');
+          return;
+      }
+      
       const room = rooms.get(currentRoomId);
       if (!room) return;
 
       // Handle Special Events that affect State
       if (event.type === 'CHAT_MESSAGE') {
           const msg = event.payload;
+          
+          // SECURITY: Sanitize chat message
+          if (msg.text) {
+              msg.text = sanitizeString(msg.text, 200);
+          }
+          if (msg.sender) {
+              msg.sender = sanitizeString(msg.sender, 20);
+          }
+          
           if (room.phase === 'DRAWING' && !msg.isSystem) {
              const target = room.currentWord.trim().toLowerCase();
              const guess = msg.text.trim().toLowerCase();
@@ -408,19 +571,27 @@ io.on('connection', (socket) => {
           return;
       }
       
-      // Store drawing events for late joiners
+      // Store drawing events for late joiners (with size limit)
+      const MAX_DRAWING_EVENTS = 5000;
+      
       if (event.type === 'DRAW_POINT') {
-          room.currentDrawing.push(event);
+          if (room.currentDrawing.length < MAX_DRAWING_EVENTS) {
+              room.currentDrawing.push(event);
+          }
       }
       
       // Handle FILL events - store for late joiners
       if (event.type === 'FILL_CANVAS') {
-          room.currentDrawing.push(event);
+          if (room.currentDrawing.length < MAX_DRAWING_EVENTS) {
+              room.currentDrawing.push(event);
+          }
       }
       
       // Handle END_STROKE - mark the end of a stroke in history
       if (event.type === 'END_STROKE') {
-          room.currentDrawing.push(event);
+          if (room.currentDrawing.length < MAX_DRAWING_EVENTS) {
+              room.currentDrawing.push(event);
+          }
       }
       
       // Handle CLEAR_CANVAS from drawer
@@ -443,11 +614,17 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
+      // Clean up rate limit entry
+      rateLimitMap.delete(socket.id);
+      
       if (currentRoomId) {
           const room = rooms.get(currentRoomId);
           if (room) {
               room.removePlayer(socket.id);
               if (room.players.length === 0) {
+                  // Clean up timers before deleting room
+                  if (room.timerInterval) clearInterval(room.timerInterval);
+                  if (room.nextTurnTimeout) clearTimeout(room.nextTurnTimeout);
                   rooms.delete(currentRoomId);
               } else {
                   room.broadcastState();

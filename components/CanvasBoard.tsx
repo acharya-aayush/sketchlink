@@ -3,6 +3,11 @@ import React, { useRef, useEffect, useState, useImperativeHandle, forwardRef } f
 import { TOOLS, ToolType, Point, DrawPoint, FillAction } from '../types';
 import { audioService } from '../services/audio';
 
+// FIXED INTERNAL RESOLUTION - This never changes!
+// All coordinates are normalized to this resolution for consistency across devices
+const CANVAS_WIDTH = 1600;
+const CANVAS_HEIGHT = 900;
+
 interface CanvasBoardProps {
   color: string;
   strokeWidth: number;
@@ -102,10 +107,29 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
     ctx.putImageData(imageData, 0, 0);
   };
 
+  // Helper to ensure canvas is initialized with correct dimensions
+  const ensureCanvasReady = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return false;
+    
+    if (canvas.width !== CANVAS_WIDTH || canvas.height !== CANVAS_HEIGHT) {
+      canvas.width = CANVAS_WIDTH;
+      canvas.height = CANVAS_HEIGHT;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (ctx) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+    return true;
+  };
+
   const redrawHistory = () => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d', { willReadFrequently: true });
     if (!canvas || !ctx) return;
+    
+    ensureCanvasReady();
 
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -136,7 +160,13 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
 
   const clearCanvas = () => {
       history.current = [];
-      redrawHistory();
+      ensureCanvasReady();
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext('2d', { willReadFrequently: true });
+      if (canvas && ctx) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
   };
 
   const performUndo = () => {
@@ -148,20 +178,22 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
     clear: clearCanvas,
     undo: performUndo,
     fill: (x, y, c) => {
+        ensureCanvasReady();
         history.current.push({ type: 'FILL', x, y, color: c });
         redrawHistory();
     },
     drawRemotePoint: (p: DrawPoint) => {
       if (p.isStarting) {
         currentRemoteStroke.current = [];
-        // Only play sound if it's a new stroke, to avoid spamming
-        // audioService.playDraw(); // Optional: Remote draw sound? Might get noisy.
       }
       currentRemoteStroke.current.push(p);
 
+      ensureCanvasReady();
       const canvas = canvasRef.current;
-      const ctx = canvas?.getContext('2d', { willReadFrequently: true });
-      if (!canvas || !ctx) return;
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return;
 
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
@@ -208,32 +240,39 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
     }
   }));
 
+  // Initialize canvas with fixed resolution (only once)
   useEffect(() => {
-    const container = containerRef.current;
     const canvas = canvasRef.current;
-    if (!container || !canvas) return;
+    if (!canvas) return;
 
-    const resizeObserver = new ResizeObserver(() => {
-      canvas.width = container.clientWidth;
-      canvas.height = container.clientHeight;
-      redrawHistory();
-    });
+    // Set fixed internal resolution - this is the "game world" size
+    canvas.width = CANVAS_WIDTH;
+    canvas.height = CANVAS_HEIGHT;
 
-    resizeObserver.observe(container);
-    return () => resizeObserver.disconnect();
+    // Initialize with white background
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (ctx) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
   }, []);
 
+  // COORDINATE TRANSLATOR: Maps screen coordinates to canvas coordinates
   const getCoordinates = (e: React.MouseEvent | React.TouchEvent): Point | null => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
+    
+    // Get the visual size of the canvas on screen (CSS size, not internal resolution)
     const rect = canvas.getBoundingClientRect();
+    
+    // Calculate scale factors between CSS size and internal resolution
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
     
     let clientX: number, clientY: number;
     
     if ('touches' in e) {
-      // Handle touch events - check if touches exist (not on touchend)
       if (e.touches.length === 0) {
-        // On touchend, use changedTouches instead
         if ('changedTouches' in e && e.changedTouches.length > 0) {
           clientX = e.changedTouches[0].clientX;
           clientY = e.changedTouches[0].clientY;
@@ -249,11 +288,29 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
       clientY = (e as React.MouseEvent).clientY;
     }
     
-    return { x: clientX - rect.left, y: clientY - rect.top };
+    // Map screen coordinates to internal canvas coordinates
+    return { 
+      x: (clientX - rect.left) * scaleX, 
+      y: (clientY - rect.top) * scaleY 
+    };
   };
 
+  // Get screen position for cursor display (inverse of getCoordinates)
+  const getScreenPosition = (canvasPoint: Point): Point | null => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = rect.width / canvas.width;
+    const scaleY = rect.height / canvas.height;
+    
+    return {
+      x: canvasPoint.x * scaleX + rect.left,
+      y: canvasPoint.y * scaleY + rect.top
+    };
+  };
+    
   const handlePointerDown = (e: React.MouseEvent | React.TouchEvent) => {
-    // IMPORTANT: Prevent scrolling on mobile
     if ('touches' in e) e.preventDefault();
     
     if (disabled) return;
@@ -355,11 +412,15 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
     }
   };
 
+  // Calculate cursor screen position for display
+  const cursorScreenPos = cursorPos ? getScreenPosition(cursorPos) : null;
+
   return (
     <div 
         ref={containerRef} 
         className={`w-full h-full relative bg-white overflow-hidden touch-none select-none ${disabled ? 'cursor-default' : 'cursor-none'}`}
         onMouseLeave={() => setCursorPos(null)}
+        style={{ aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}` }}
     >
       <canvas
         ref={canvasRef}
@@ -371,15 +432,16 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
         onTouchMove={handlePointerMove}
         onTouchEnd={handlePointerUp}
         className="w-full h-full block touch-none"
+        style={{ imageRendering: 'auto' }}
       />
       
       {/* Brush Cursor */}
-      {!disabled && cursorPos && tool !== TOOLS.FILL && (
+      {!disabled && cursorScreenPos && tool !== TOOLS.FILL && (
           <div 
             className="pointer-events-none fixed rounded-full border border-slate-400 z-50 transform -translate-x-1/2 -translate-y-1/2"
             style={{ 
-                left: cursorPos.x + (canvasRef.current?.getBoundingClientRect().left || 0), 
-                top: cursorPos.y + (canvasRef.current?.getBoundingClientRect().top || 0),
+                left: cursorScreenPos.x, 
+                top: cursorScreenPos.y,
                 width: strokeWidth, 
                 height: strokeWidth,
                 backgroundColor: tool === TOOLS.ERASER ? 'white' : color,

@@ -11,6 +11,7 @@ interface ChatSidebarProps {
   onSendMessage: (e: React.FormEvent) => void;
   isMyTurn: boolean;
   phase: GamePhase;
+  isMobileCompact?: boolean; // For Skribbl.io-style mobile layout
 }
 
 const REACTIONS = ['❤️', '😂', '😲', '🔥', '💩', '👏'];
@@ -22,7 +23,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   setInputMessage, 
   onSendMessage, 
   isMyTurn,
-  phase
+  phase,
+  isMobileCompact = false
 }) => {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -37,8 +39,51 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       });
   };
 
+  // Mobile compact version (Skribbl.io style)
+  if (isMobileCompact) {
+    return (
+      <div className="flex flex-col h-full bg-slate-50 overflow-hidden">
+        <div className="px-2 py-1.5 bg-white border-b border-slate-200 flex items-center justify-between">
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">💬 Chat</span>
+          <div className="flex gap-1">
+            {REACTIONS.slice(0, 4).map(emoji => (
+              <button 
+                key={emoji}
+                onClick={() => sendReaction(emoji)}
+                className="hover:scale-110 transition-transform active:scale-95 text-sm"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-1.5 space-y-1 bg-slate-100">
+          {messages.length === 0 && (
+            <div className="text-center text-slate-400 text-[10px] italic mt-2">Type a guess!</div>
+          )}
+          {messages.slice(-15).map(msg => (
+            <div key={msg.id} className={`text-xs p-1 rounded flex items-start gap-1 
+              ${msg.isSystem ? 'justify-center text-[10px] text-slate-500 italic bg-transparent' : 
+                msg.isCorrect ? 'bg-green-100 text-green-800 border border-green-200' : 
+                msg.isClose ? 'bg-yellow-50 text-yellow-700 border border-yellow-200' :
+                'bg-white border border-slate-200 text-slate-800'}`}>
+                {!msg.isSystem && <span className="text-sm select-none">{msg.senderAvatar}</span>}
+                <div className="break-all leading-tight">
+                  {!msg.isSystem && <span className="font-bold text-slate-600 mr-1">{msg.sender}:</span>}
+                  {msg.text}
+                </div>
+            </div>
+          ))}
+          <div ref={chatEndRef} />
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop full version
   return (
-      <aside className="w-full md:w-80 bg-slate-50 border-t md:border-l border-slate-200 flex flex-col h-48 md:h-full shrink-0 z-20 shadow-sm">
+      <aside className="hidden md:flex w-80 bg-slate-50 border-l border-slate-200 flex-col h-full shrink-0 z-20 shadow-sm">
           <div className="p-2 border-b border-slate-200 bg-white font-marker text-sm text-slate-500 flex justify-between items-center">
             <span className="flex items-center gap-1">💬 Chat</span>
             <span className="text-slate-300 text-xs">Room: {roomCode.split('-')[0]}</span>
