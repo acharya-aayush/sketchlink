@@ -219,6 +219,10 @@ type GameEventType =
    - First request after sleep takes ~30s
    - App includes auto-wake feature
 
+<<<<<<< HEAD
+=======
+---
+>>>>>>> 3930c027591b24234a0878fd3b400a4baf6ce93f
 
 ## Troubleshooting
 
