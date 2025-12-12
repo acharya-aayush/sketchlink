@@ -5,7 +5,7 @@ import cors from 'cors';
 
 const app = express();
 
-// Allowed origins for CORS
+// Allowed origins for CORS - includes Vercel preview URLs
 const ALLOWED_ORIGINS = [
   'https://sketchlinks.vercel.app',
   'https://sketchlink.vercel.app',
@@ -13,12 +13,21 @@ const ALLOWED_ORIGINS = [
   'http://localhost:3000'
 ];
 
+// Function to check if origin is allowed (includes Vercel preview deployments)
+function isOriginAllowed(origin) {
+  if (!origin) return true; // Allow requests with no origin (mobile apps, curl, etc.)
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  // Allow all Vercel preview deployments (*.vercel.app)
+  if (origin.endsWith('.vercel.app')) return true;
+  return false;
+}
+
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, etc.) in dev
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+    if (isOriginAllowed(origin)) {
       callback(null, true);
     } else {
+      console.log('CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   }
@@ -36,7 +45,13 @@ app.get('/health', (req, res) => {
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ALLOWED_ORIGINS,
+    origin: (origin, callback) => {
+      if (isOriginAllowed(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ["GET", "POST"]
   }
 });

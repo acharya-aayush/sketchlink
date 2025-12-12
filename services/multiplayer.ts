@@ -4,17 +4,34 @@ import { GameEvent, GameSettings, GalleryItem } from '../types';
 
 type Listener = (event: GameEvent) => void;
 
-// Detect if running on localhost or deployed
-const isLocalhost = typeof window !== 'undefined' && 
-  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+// Use environment variable or detect at runtime
+// Vite exposes env vars with import.meta.env
+const getServerUrl = () => {
+  // Check if we're in the browser
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:3001';
+    }
+  }
+  // Production - use Render server
+  return 'https://sketchlink-server.onrender.com';
+};
 
-const SERVER_URL = isLocalhost 
-  ? 'http://localhost:3001' 
-  : 'https://sketchlink-server.onrender.com';
+const SERVER_URL = getServerUrl();
+
+// For wake up server, check hostname at call time
+const isLocalhost = () => {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    return hostname === 'localhost' || hostname === '127.0.0.1';
+  }
+  return false;
+};
 
 // Wake up the server (Render free tier sleeps after 15 min)
 export async function wakeUpServer(): Promise<boolean> {
-  if (isLocalhost) return true; // No need to wake up localhost
+  if (isLocalhost()) return true; // No need to wake up localhost
   
   try {
     const controller = new AbortController();
