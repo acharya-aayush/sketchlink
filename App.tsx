@@ -267,18 +267,25 @@ const App: React.FC = () => {
       audioService.resume();
   }
 
-  const handleCreateLobby = async () => {
+  // Just show the host settings form (don't create room yet)
+  const handleShowHostSettings = () => {
+      setLobbyMode('HOST');
+  };
+
+  // Actually create the room after user configures settings
+  const handleCreateRoom = async () => {
       initAudio();
       setLobbyMode('LOADING');
       try {
         const roomId = await multiplayer.connect(playerName, playerAvatar);
         setRoomCode(roomId);
-        setIsConnected(true);
-        setLobbyMode('HOST');
         window.location.hash = `room=${roomId}`;
         
         // Push initial settings
         multiplayer.updateSettings(gameSettings);
+        
+        // Now go to in-game lobby (isConnected=true shows game view with LOBBY phase)
+        setIsConnected(true);
       } catch (err) {
           console.error(err);
           setJoinError('Could not connect to server.');
@@ -388,27 +395,27 @@ const App: React.FC = () => {
   // --- Renders (Mostly Unchanged) ---
   
   const renderScoreboard = () => (
-    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-30 flex items-center justify-center p-4 animate-fade-in">
-        <div className="bg-white p-6 md:p-8 rounded-xl shadow-2xl border-4 border-slate-300 w-full max-w-lg z-10 animate-bounce-in max-h-[90vh] overflow-y-auto">
-            <h2 className="text-4xl font-marker text-center mb-2">Round Over!</h2>
-            <div className="text-center mb-6 text-xl text-slate-600">
+    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-30 flex items-center justify-center p-2 md:p-4 animate-fade-in rounded-xl">
+        <div className="bg-white p-4 md:p-8 rounded-xl shadow-2xl border-2 md:border-4 border-slate-300 w-full max-w-lg z-10 animate-bounce-in max-h-[85vh] overflow-y-auto">
+            <h2 className="text-2xl md:text-4xl font-marker text-center mb-1 md:mb-2">Round Over!</h2>
+            <div className="text-center mb-3 md:mb-6 text-base md:text-xl text-slate-600">
                 The word was: <span className="font-bold text-blue-600 uppercase">{currentWord}</span>
             </div>
             
-            <div className="space-y-3 mb-8">
+            <div className="space-y-2 md:space-y-3 mb-4 md:mb-8">
                 {players.sort((a,b) => b.score - a.score).map((p, i) => (
-                    <div key={p.id} className={`flex justify-between items-center p-3 rounded-lg border-2 ${p.id === drawerId ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200'}`}>
-                        <div className="flex items-center gap-3">
-                            <span className="font-bold text-slate-400 w-6">#{i+1}</span>
-                            <span className="text-2xl">{p.avatar}</span>
-                            <span className="font-handwritten text-xl">{p.name} {p.id === drawerId && '✏️'}</span>
+                    <div key={p.id} className={`flex justify-between items-center p-2 md:p-3 rounded-lg border-2 ${p.id === drawerId ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className="flex items-center gap-2 md:gap-3">
+                            <span className="font-bold text-slate-400 w-5 md:w-6 text-sm md:text-base">#{i+1}</span>
+                            <span className="text-lg md:text-2xl">{p.avatar}</span>
+                            <span className="font-handwritten text-base md:text-xl truncate max-w-[100px] md:max-w-none">{p.name} {p.id === drawerId && '✏️'}</span>
                         </div>
-                        <span className="font-bold text-green-600 text-xl">{p.score}pts</span>
+                        <span className="font-bold text-green-600 text-base md:text-xl">{p.score}pts</span>
                     </div>
                 ))}
             </div>
 
-            <div className="text-center text-slate-400 font-bold animate-pulse">
+            <div className="text-center text-slate-400 font-bold animate-pulse text-sm md:text-base">
                 Next round starting soon...
             </div>
         </div>
@@ -420,21 +427,21 @@ const App: React.FC = () => {
       const drawerName = players.find(p => p.id === drawerId)?.name || 'Unknown';
       const drawerAvatar = players.find(p => p.id === drawerId)?.avatar || '👤';
       return (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-100/90 backdrop-blur-sm p-4 text-center">
-           <div className="text-4xl font-marker animate-pulse text-slate-600 mb-4">Waiting...</div>
-           <p className="text-slate-500 text-xl">{drawerAvatar} {drawerName} is choosing a word.</p>
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-100/90 backdrop-blur-sm p-4 text-center rounded-xl">
+           <div className="text-2xl md:text-4xl font-marker animate-pulse text-slate-600 mb-2 md:mb-4">Waiting...</div>
+           <p className="text-slate-500 text-base md:text-xl">{drawerAvatar} {drawerName} is choosing a word.</p>
         </div>
       );
     }
     return (
-      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-100/95 backdrop-blur-sm space-y-8 p-4">
-        <h2 className="text-3xl md:text-4xl font-marker text-slate-700 text-center">Your Turn! Choose a Word:</h2>
-        <div className="grid grid-cols-1 gap-4 w-full max-w-sm">
+      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-100/95 backdrop-blur-sm space-y-4 md:space-y-8 p-4 rounded-xl">
+        <h2 className="text-xl md:text-4xl font-marker text-slate-700 text-center">Your Turn! Choose a Word:</h2>
+        <div className="grid grid-cols-1 gap-2 md:gap-4 w-full max-w-sm">
           {wordOptions.map((word) => (
             <button
               key={word}
               onClick={() => finalHandleWordSelect(word)}
-              className="bg-white hover:bg-amber-50 border-4 border-slate-300 border-dashed rounded-xl p-6 text-2xl md:text-3xl shadow-lg transform hover:-translate-y-1 transition-all text-slate-800"
+              className="bg-white hover:bg-amber-50 border-2 md:border-4 border-slate-300 border-dashed rounded-xl p-3 md:p-6 text-lg md:text-3xl shadow-lg transform hover:-translate-y-1 transition-all text-slate-800"
             >
               {word}
             </button>
@@ -445,14 +452,14 @@ const App: React.FC = () => {
   };
 
   const renderLobbyWaiting = () => (
-    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-50 p-4">
-        <div className="bg-white p-8 rounded-xl shadow-lg border-2 border-slate-200 text-center max-w-md w-full">
-             <div className="font-marker text-3xl text-slate-700 mb-2">Lobby</div>
-             <div className="text-slate-500 mb-6 flex flex-col gap-1 items-center">
+    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-50 p-3 md:p-4 rounded-xl">
+        <div className="bg-white p-4 md:p-8 rounded-xl shadow-lg border-2 border-slate-200 text-center max-w-md w-full">
+             <div className="font-marker text-2xl md:text-3xl text-slate-700 mb-2">Lobby</div>
+             <div className="text-slate-500 mb-4 md:mb-6 flex flex-col gap-1 items-center text-sm md:text-base">
                 <span>Room Code:</span>
                 <button 
                   onClick={() => navigator.clipboard.writeText(window.location.href)}
-                  className="font-mono font-bold text-slate-800 bg-slate-100 px-2 py-1 rounded select-all text-sm break-all max-w-full hover:bg-blue-50 transition-colors"
+                  className="font-mono font-bold text-slate-800 bg-slate-100 px-2 py-1 rounded select-all text-xs md:text-sm break-all max-w-full hover:bg-blue-50 transition-colors"
                   title="Click to copy link"
                 >
                     {roomCode || "Connecting..."}
@@ -460,19 +467,24 @@ const App: React.FC = () => {
              </div>
              
              {isHost ? (
-                 <div className="space-y-4">
-                    <p className="text-slate-600">
-                        {players.length > 1 ? "Ready to start?" : "Waiting for friends to join..."}
+                 <div className="space-y-3 md:space-y-4">
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                        <span className={`px-3 py-1 rounded-full text-sm font-bold ${players.length >= 2 ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                            {players.length} / 2+ players
+                        </span>
+                    </div>
+                    <p className="text-slate-600 text-sm md:text-base">
+                        {players.length >= 2 ? "Ready to start!" : "Waiting for friends to join..."}
                     </p>
-                    <Button onClick={handleStartGame} disabled={players.length < 1} className="w-full">
-                        Start Game
+                    <Button onClick={handleStartGame} disabled={players.length < 2} className="w-full">
+                        {players.length < 2 ? 'Need 2+ Players' : 'Start Game'}
                     </Button>
                     <p className="text-xs text-slate-400">Share the room link with your friends!</p>
                  </div>
              ) : (
-                <div className="space-y-4">
-                    <div className="animate-pulse text-xl text-blue-500 font-bold">Waiting for host to start...</div>
-                    <p className="text-slate-500">Sit tight! The game will begin soon.</p>
+                <div className="space-y-3 md:space-y-4">
+                    <div className="animate-pulse text-lg md:text-xl text-blue-500 font-bold">Waiting for host to start...</div>
+                    <p className="text-slate-500 text-sm md:text-base">Sit tight! The game will begin soon.</p>
                 </div>
              )}
         </div>
@@ -519,7 +531,7 @@ const App: React.FC = () => {
              roomCode={roomCode} setRoomCode={setRoomCode}
              gameSettings={gameSettings} setGameSettings={setGameSettings}
              joinError={joinError} players={players} isHost={isHost}
-             onCreateLobby={handleCreateLobby} onHostStart={handleCreateLobby} // Host start now just creates room
+             onCreateLobby={handleShowHostSettings} onHostStart={handleCreateRoom}
              onJoin={handleJoin} onStartGame={handleStartGame}
            />
        ) : (
@@ -533,6 +545,7 @@ const App: React.FC = () => {
                    
                    {/* Canvas Area - takes most of the screen */}
                    <div className="flex-1 relative p-2 min-h-0 flex items-center justify-center">
+                       {/* Canvas wrapper with aspect ratio */}
                        <div className="w-full max-h-full bg-white rounded-xl shadow-lg border-2 border-slate-200 overflow-hidden relative" style={{ aspectRatio: '16/9' }}>
                            <CanvasBoard 
                                ref={canvasRef} 
@@ -545,11 +558,7 @@ const App: React.FC = () => {
                                onFill={handleFill}
                            />
                            
-                           {phase === GamePhase.LOBBY && renderLobbyWaiting()}
-                           {phase === GamePhase.WORD_SELECT && renderWordSelect()}
-                           {phase === GamePhase.ROUND_OVER && renderScoreboard()}
-                           
-                           {/* Drawer indicator */}
+                           {/* Drawer indicator - small overlay is fine inside canvas */}
                            {phase === GamePhase.DRAWING && (
                                <div className="absolute top-2 left-2 bg-white/90 backdrop-blur px-2 py-1 rounded-full border border-slate-200 flex items-center gap-1 text-xs shadow-sm z-10">
                                    <span>{currentDrawer?.avatar || '?'}</span>
@@ -558,6 +567,11 @@ const App: React.FC = () => {
                                </div>
                            )}
                        </div>
+                       
+                       {/* Full-screen overlays rendered OUTSIDE canvas but centered over the whole area */}
+                       {phase === GamePhase.LOBBY && renderLobbyWaiting()}
+                       {phase === GamePhase.WORD_SELECT && renderWordSelect()}
+                       {phase === GamePhase.ROUND_OVER && renderScoreboard()}
                    </div>
                    
                    {/* Drawing Toolbar (only when it's my turn) */}

@@ -35,15 +35,15 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
 }) => {
 
   const AvatarSelector = () => (
-      <div className="mb-4">
-          <label className="block text-slate-600 font-bold mb-2">Choose Avatar</label>
-          <div className="grid grid-cols-8 gap-2">
+      <div className="mb-3 md:mb-4">
+          <label className="block text-slate-600 font-bold mb-1 md:mb-2 text-sm md:text-base">Choose Avatar</label>
+          <div className="grid grid-cols-8 gap-1 md:gap-2">
               {AVATARS.map(avatar => (
                   <button
                     key={avatar}
                     type="button"
                     onClick={() => setPlayerAvatar(avatar)}
-                    className={`text-2xl p-1 rounded hover:bg-blue-50 transition-colors ${playerAvatar === avatar ? 'bg-blue-100 ring-2 ring-blue-400' : ''}`}
+                    className={`text-xl md:text-2xl p-1 rounded hover:bg-blue-50 transition-colors ${playerAvatar === avatar ? 'bg-blue-100 ring-2 ring-blue-400' : ''}`}
                   >
                       {avatar}
                   </button>
@@ -94,30 +94,30 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
   );
 
   const renderHostForm = () => (
-    <div className="w-full max-w-md bg-white p-6 rounded-lg shadow-lg border-2 border-slate-200 animate-slide-up flex flex-col h-full md:h-auto overflow-y-auto">
-        <h3 className="text-2xl font-marker mb-4 text-center">Game Settings</h3>
+    <div className="w-full max-w-md bg-white p-4 md:p-6 rounded-lg shadow-lg border-2 border-slate-200 animate-slide-up flex flex-col max-h-[85vh] md:max-h-none overflow-y-auto">
+        <h3 className="text-xl md:text-2xl font-marker mb-3 md:mb-4 text-center">Game Settings</h3>
         
-        <div className="space-y-4 mb-6">
+        <div className="space-y-3 md:space-y-4 mb-4 md:mb-6">
             <div>
-                <label className="block text-slate-600 font-bold mb-1">Your Name</label>
+                <label className="block text-slate-600 font-bold mb-1 text-sm md:text-base">Your Name</label>
                 <input 
                     type="text" 
                     value={playerName}
                     onChange={(e) => setPlayerName(e.target.value)}
-                    className="w-full border-2 border-slate-300 rounded px-3 py-2 font-handwritten text-xl bg-white text-slate-900 placeholder:text-slate-400 text-base"
+                    className="w-full border-2 border-slate-300 rounded px-3 py-2 font-handwritten text-lg md:text-xl bg-white text-slate-900 placeholder:text-slate-400"
                     placeholder="Enter your name"
                 />
             </div>
 
             <AvatarSelector />
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-2 md:gap-4">
                 <div>
-                    <label className="block text-slate-600 font-bold mb-1">Rounds</label>
+                    <label className="block text-slate-600 font-bold mb-1 text-sm md:text-base">Rounds</label>
                     <select 
                         value={gameSettings.rounds}
                         onChange={(e) => setGameSettings({...gameSettings, rounds: Number(e.target.value)})}
-                        className="w-full border-2 border-slate-300 rounded px-2 py-2 bg-white text-slate-900 text-base"
+                        className="w-full border-2 border-slate-300 rounded px-2 py-2 bg-white text-slate-900 text-sm md:text-base"
                     >
                         <option value={1}>1 Round</option>
                         <option value={3}>3 Rounds</option>
@@ -126,30 +126,30 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
                     </select>
                 </div>
                 <div>
-                    <label className="block text-slate-600 font-bold mb-1">Draw Time</label>
+                    <label className="block text-slate-600 font-bold mb-1 text-sm md:text-base">Draw Time</label>
                     <select 
                         value={gameSettings.drawTime}
                         onChange={(e) => setGameSettings({...gameSettings, drawTime: Number(e.target.value)})}
-                        className="w-full border-2 border-slate-300 rounded px-2 py-2 bg-white text-slate-900 text-base"
+                        className="w-full border-2 border-slate-300 rounded px-2 py-2 bg-white text-slate-900 text-sm md:text-base"
                     >
-                        <option value={30}>30 Seconds</option>
-                        <option value={45}>45 Seconds</option>
-                        <option value={60}>60 Seconds</option>
-                        <option value={90}>90 Seconds</option>
-                        <option value={120}>120 Seconds</option>
+                        <option value={30}>30s</option>
+                        <option value={45}>45s</option>
+                        <option value={60}>60s</option>
+                        <option value={90}>90s</option>
+                        <option value={120}>120s</option>
                     </select>
                 </div>
             </div>
 
             <div>
-                <label className="block text-slate-600 font-bold mb-1">Difficulty</label>
+                <label className="block text-slate-600 font-bold mb-1 text-sm md:text-base">Difficulty</label>
                 <div className="flex rounded-md shadow-sm" role="group">
                     {['Easy', 'Medium', 'Hard'].map((diff) => (
                         <button
                             key={diff}
                             type="button"
                             onClick={() => setGameSettings({...gameSettings, difficulty: diff as any})}
-                            className={`flex-1 px-4 py-2 text-sm font-medium border border-slate-300 first:rounded-l-lg last:rounded-r-lg 
+                            className={`flex-1 px-2 md:px-4 py-2 text-xs md:text-sm font-medium border border-slate-300 first:rounded-l-lg last:rounded-r-lg 
                                 ${gameSettings.difficulty === diff 
                                     ? 'bg-blue-600 text-white border-blue-600 z-10' 
                                     : 'bg-white text-slate-700 hover:bg-slate-50'}`}
@@ -161,19 +161,24 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
             </div>
 
             <div>
-                <label className="block text-slate-600 font-bold mb-1">Custom Words (Optional)</label>
+                <label className="block text-slate-600 font-bold mb-1 text-sm md:text-base">Custom Words (Optional)</label>
                 <textarea 
                     value={gameSettings.customWords}
                     onChange={(e) => setGameSettings({...gameSettings, customWords: e.target.value})}
-                    className="w-full border-2 border-slate-300 rounded px-3 py-2 text-sm bg-white text-slate-900 placeholder:text-slate-400 min-h-[60px]"
+                    className="w-full border-2 border-slate-300 rounded px-3 py-2 text-sm bg-white text-slate-900 placeholder:text-slate-400 min-h-[50px] md:min-h-[60px]"
                     placeholder="Dog, Cat, Inside Joke..."
                 />
             </div>
             
             {roomCode && (
-                <div className="bg-yellow-50 border border-yellow-200 p-3 rounded text-sm text-yellow-800 animate-pulse">
-                    <p className="font-bold">Room created! Waiting for you to start...</p>
-                     <div className="flex justify-between items-center mt-1 gap-2">
+                <div className="bg-yellow-50 border border-yellow-200 p-2 md:p-3 rounded text-xs md:text-sm text-yellow-800">
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="font-bold">Room created!</p>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${players.length >= 2 ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                            {players.length} / 2+ players
+                        </span>
+                    </div>
+                    <div className="flex justify-between items-center gap-2">
                         <input 
                             readOnly 
                             value={window.location.href} 
@@ -193,7 +198,9 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
         <div className="flex gap-3 mt-auto md:mt-0">
             <Button onClick={() => setLobbyMode('HOME')} variant="secondary" className="flex-1">Cancel</Button>
             {roomCode ? (
-                 <Button onClick={onStartGame} disabled={players.length < 1} className="flex-1">Start Game</Button>
+                 <Button onClick={onStartGame} disabled={players.length < 2} className="flex-1">
+                     {players.length < 2 ? 'Need 2+ Players' : 'Start Game'}
+                 </Button>
             ) : (
                  <Button onClick={onHostStart} disabled={!playerName} className="flex-1">Create Room</Button>
             )}
@@ -202,23 +209,23 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
   );
 
   const renderJoinForm = () => (
-      <div className="w-full max-w-md bg-white p-6 rounded-lg shadow-lg border-2 border-slate-200 animate-slide-up flex flex-col h-full md:h-auto overflow-y-auto">
-        <h3 className="text-2xl font-marker mb-4 text-center">Join Game</h3>
+      <div className="w-full max-w-md bg-white p-4 md:p-6 rounded-lg shadow-lg border-2 border-slate-200 animate-slide-up flex flex-col max-h-[85vh] md:max-h-none overflow-y-auto">
+        <h3 className="text-xl md:text-2xl font-marker mb-3 md:mb-4 text-center">Join Game</h3>
         
         {joinError && (
-            <div className="bg-red-50 text-red-600 p-3 rounded mb-4 text-sm border border-red-200">
+            <div className="bg-red-50 text-red-600 p-2 md:p-3 rounded mb-3 md:mb-4 text-xs md:text-sm border border-red-200">
                 {joinError}
             </div>
         )}
 
-        <div className="space-y-4 mb-6">
+        <div className="space-y-3 md:space-y-4 mb-4 md:mb-6">
             <div>
-                <label className="block text-slate-600 font-bold mb-1">Your Name</label>
+                <label className="block text-slate-600 font-bold mb-1 text-sm md:text-base">Your Name</label>
                 <input 
                     type="text" 
                     value={playerName}
                     onChange={(e) => setPlayerName(e.target.value)}
-                    className="w-full border-2 border-slate-300 rounded px-3 py-2 font-handwritten text-xl bg-white text-slate-900 placeholder:text-slate-400 text-base"
+                    className="w-full border-2 border-slate-300 rounded px-3 py-2 font-handwritten text-lg md:text-xl bg-white text-slate-900 placeholder:text-slate-400"
                     placeholder="Enter your name"
                 />
             </div>
@@ -226,7 +233,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
             <AvatarSelector />
 
             <div>
-                <label className="block text-slate-600 font-bold mb-1">Room Link or Code</label>
+                <label className="block text-slate-600 font-bold mb-1 text-sm md:text-base">Room Link or Code</label>
                 <input 
                     type="text" 
                     value={roomCode}
@@ -245,7 +252,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
             </div>
         </div>
 
-        <div className="flex gap-3 mt-auto md:mt-0">
+        <div className="flex gap-2 md:gap-3 mt-auto md:mt-0">
             <Button onClick={() => setLobbyMode('HOME')} variant="secondary" className="flex-1">Back</Button>
             <Button onClick={onJoin} disabled={!playerName || roomCode.length < 4} className="flex-1">Join</Button>
         </div>
@@ -253,12 +260,12 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
   );
 
   return (
-    <div className="flex flex-col h-full items-center justify-center p-4 bg-slate-50 overflow-y-auto">
-      <div className="text-center space-y-2 mb-8">
-        <h1 className="text-6xl font-marker text-slate-800 -rotate-2">
+    <div className="flex flex-col h-full items-center justify-center p-3 md:p-4 bg-slate-50 overflow-y-auto">
+      <div className="text-center space-y-1 md:space-y-2 mb-4 md:mb-8">
+        <h1 className="text-4xl md:text-6xl font-marker text-slate-800 -rotate-2">
           Sketch<span className="text-blue-500">Link</span>
         </h1>
-        <p className="text-slate-500 font-handwritten text-2xl">Multiplayer Drawing</p>
+        <p className="text-slate-500 font-handwritten text-xl md:text-2xl">Multiplayer Drawing</p>
       </div>
 
       {lobbyMode === 'WAKING_SERVER' && renderWakingServer()}
