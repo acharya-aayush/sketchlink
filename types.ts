@@ -66,8 +66,12 @@ export type GameEvent =
   | { type: 'SYNC_PLAYERS'; payload: Player[] }
   | { type: 'SYNC_SETTINGS'; payload: GameSettings }
   | { type: 'SYNC_GALLERY'; payload: GalleryItem[] }
+  | { type: 'SYNC_DRAWING'; payload: GameEvent[] }
+  | { type: 'DRAW'; payload: DrawPoint }
   | { type: 'DRAW_POINT'; payload: DrawPoint }
+  | { type: 'STROKE_END' }
   | { type: 'END_STROKE' }
+  | { type: 'FILL'; payload: FillAction }
   | { type: 'FILL_CANVAS'; payload: FillAction }
   | { type: 'UNDO_ACTION' }
   | { type: 'CLEAR_CANVAS' }

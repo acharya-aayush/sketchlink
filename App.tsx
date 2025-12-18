@@ -13,6 +13,7 @@ import { audioService } from './services/audio';
 import { Confetti, ConfettiHandle } from './components/Confetti';
 import { ReactionOverlay, ReactionOverlayHandle } from './components/ReactionOverlay';
 import { Gallery } from './components/Gallery';
+import { VictoryPodium, VictoryPodiumHandle } from './components/VictoryPodium';
 
 const App: React.FC = () => {
   // Track if we're on mobile (state-based for proper re-render)
@@ -70,7 +71,11 @@ const App: React.FC = () => {
   // Juice State
   const confettiRef = useRef<ConfettiHandle>(null);
   const reactionRef = useRef<ReactionOverlayHandle>(null);
+  const victoryPodiumRef = useRef<VictoryPodiumHandle>(null);
   const [playerFeedback, setPlayerFeedback] = useState<Record<string, string>>({});
+  
+  // Cheat code state for "Victorymation"
+  const [cheatBuffer, setCheatBuffer] = useState('');
 
   // Computed
   const isMe = players.find(p => p.id === multiplayer.playerId);
@@ -237,16 +242,76 @@ const App: React.FC = () => {
       }
   };
 
+  // Cheat code detection effect - triggers victory when buffer matches
+  useEffect(() => {
+    if (cheatBuffer === 'victorymation') {
+      console.log('🎉 Cheat code activated: VICTORYMATION!');
+      victoryPodiumRef.current?.showDemo();
+      setCheatBuffer(''); // Reset buffer
+    }
+  }, [cheatBuffer]);
+
+  // Expose cheat commands to browser console
+  useEffect(() => {
+    // @ts-ignore - Exposing to window for console access
+    window.victorymation = () => {
+      console.log('🎉 Victory animation triggered from console!');
+      victoryPodiumRef.current?.showDemo();
+    };
+    
+    // @ts-ignore
+    window.cheats = {
+      victorymation: () => {
+        console.log('🎉 Victory animation triggered!');
+        victoryPodiumRef.current?.showDemo();
+      },
+      confetti: () => {
+        console.log('🎊 Confetti explosion!');
+        confettiRef.current?.explode();
+      },
+      help: () => {
+        console.log(`
+🎮 SketchLink Cheat Commands:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  victorymation()     - Play victory podium animation
+  cheats.victorymation() - Same as above
+  cheats.confetti()   - Trigger confetti explosion
+  cheats.help()       - Show this help message
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        `);
+      }
+    };
+    
+    console.log('🎮 SketchLink cheats loaded! Type victorymation() or cheats.help() in console.');
+    
+    return () => {
+      // @ts-ignore
+      delete window.victorymation;
+      // @ts-ignore
+      delete window.cheats;
+    };
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-        if (!isMyTurn) return;
-        if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        // Undo functionality for drawing
+        if (isMyTurn && (e.ctrlKey || e.metaKey) && e.key === 'z') {
             e.preventDefault();
             handleUndo();
+            return;
+        }
+        
+        // Cheat code detection: "victorymation" (12 characters)
+        // Works everywhere - even when typing in inputs!
+        const key = e.key.toLowerCase();
+        if (key.length === 1 && /[a-z]/.test(key)) {
+            setCheatBuffer(prev => (prev + key).slice(-12));
         }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    
+    // Use capture phase to ensure we get the event before inputs consume it
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [isMyTurn]);
 
   // Fetch words when it becomes my turn to select
@@ -395,27 +460,27 @@ const App: React.FC = () => {
   // --- Renders (Mostly Unchanged) ---
   
   const renderScoreboard = () => (
-    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-30 flex items-center justify-center p-2 md:p-4 animate-fade-in rounded-xl">
+    <div className="absolute inset-0 z-30 flex items-center justify-center p-2 bg-slate-900/40 backdrop-blur-sm md:p-4 animate-fade-in rounded-xl">
         <div className="bg-white p-4 md:p-8 rounded-xl shadow-2xl border-2 md:border-4 border-slate-300 w-full max-w-lg z-10 animate-bounce-in max-h-[85vh] overflow-y-auto">
-            <h2 className="text-2xl md:text-4xl font-marker text-center mb-1 md:mb-2">Round Over!</h2>
-            <div className="text-center mb-3 md:mb-6 text-base md:text-xl text-slate-600">
+            <h2 className="mb-1 text-2xl text-center md:text-4xl font-marker md:mb-2">Round Over!</h2>
+            <div className="mb-3 text-base text-center md:mb-6 md:text-xl text-slate-600">
                 The word was: <span className="font-bold text-blue-600 uppercase">{currentWord}</span>
             </div>
             
-            <div className="space-y-2 md:space-y-3 mb-4 md:mb-8">
+            <div className="mb-4 space-y-2 md:space-y-3 md:mb-8">
                 {players.sort((a,b) => b.score - a.score).map((p, i) => (
                     <div key={p.id} className={`flex justify-between items-center p-2 md:p-3 rounded-lg border-2 ${p.id === drawerId ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200'}`}>
                         <div className="flex items-center gap-2 md:gap-3">
-                            <span className="font-bold text-slate-400 w-5 md:w-6 text-sm md:text-base">#{i+1}</span>
+                            <span className="w-5 text-sm font-bold text-slate-400 md:w-6 md:text-base">#{i+1}</span>
                             <span className="text-lg md:text-2xl">{p.avatar}</span>
                             <span className="font-handwritten text-base md:text-xl truncate max-w-[100px] md:max-w-none">{p.name} {p.id === drawerId && '✏️'}</span>
                         </div>
-                        <span className="font-bold text-green-600 text-base md:text-xl">{p.score}pts</span>
+                        <span className="text-base font-bold text-green-600 md:text-xl">{p.score}pts</span>
                     </div>
                 ))}
             </div>
 
-            <div className="text-center text-slate-400 font-bold animate-pulse text-sm md:text-base">
+            <div className="text-sm font-bold text-center text-slate-400 animate-pulse md:text-base">
                 Next round starting soon...
             </div>
         </div>
@@ -427,21 +492,21 @@ const App: React.FC = () => {
       const drawerName = players.find(p => p.id === drawerId)?.name || 'Unknown';
       const drawerAvatar = players.find(p => p.id === drawerId)?.avatar || '👤';
       return (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-100/90 backdrop-blur-sm p-4 text-center rounded-xl">
-           <div className="text-2xl md:text-4xl font-marker animate-pulse text-slate-600 mb-2 md:mb-4">Waiting...</div>
-           <p className="text-slate-500 text-base md:text-xl">{drawerAvatar} {drawerName} is choosing a word.</p>
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-4 text-center bg-slate-100/90 backdrop-blur-sm rounded-xl">
+           <div className="mb-2 text-2xl md:text-4xl font-marker animate-pulse text-slate-600 md:mb-4">Waiting...</div>
+           <p className="text-base text-slate-500 md:text-xl">{drawerAvatar} {drawerName} is choosing a word.</p>
         </div>
       );
     }
     return (
-      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-100/95 backdrop-blur-sm space-y-4 md:space-y-8 p-4 rounded-xl">
-        <h2 className="text-xl md:text-4xl font-marker text-slate-700 text-center">Your Turn! Choose a Word:</h2>
-        <div className="grid grid-cols-1 gap-2 md:gap-4 w-full max-w-sm">
+      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-4 space-y-4 bg-slate-100/95 backdrop-blur-sm md:space-y-8 rounded-xl">
+        <h2 className="text-xl text-center md:text-4xl font-marker text-slate-700">Your Turn! Choose a Word:</h2>
+        <div className="grid w-full max-w-sm grid-cols-1 gap-2 md:gap-4">
           {wordOptions.map((word) => (
             <button
               key={word}
               onClick={() => finalHandleWordSelect(word)}
-              className="bg-white hover:bg-amber-50 border-2 md:border-4 border-slate-300 border-dashed rounded-xl p-3 md:p-6 text-lg md:text-3xl shadow-lg transform hover:-translate-y-1 transition-all text-slate-800"
+              className="p-3 text-lg transition-all transform bg-white border-2 border-dashed shadow-lg hover:bg-amber-50 md:border-4 border-slate-300 rounded-xl md:p-6 md:text-3xl hover:-translate-y-1 text-slate-800"
             >
               {word}
             </button>
@@ -452,14 +517,14 @@ const App: React.FC = () => {
   };
 
   const renderLobbyWaiting = () => (
-    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-50 p-3 md:p-4 rounded-xl">
-        <div className="bg-white p-4 md:p-8 rounded-xl shadow-lg border-2 border-slate-200 text-center max-w-md w-full">
-             <div className="font-marker text-2xl md:text-3xl text-slate-700 mb-2">Lobby</div>
-             <div className="text-slate-500 mb-4 md:mb-6 flex flex-col gap-1 items-center text-sm md:text-base">
+    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-3 bg-slate-50 md:p-4 rounded-xl">
+        <div className="w-full max-w-md p-4 text-center bg-white border-2 shadow-lg md:p-8 rounded-xl border-slate-200">
+             <div className="mb-2 text-2xl font-marker md:text-3xl text-slate-700">Lobby</div>
+             <div className="flex flex-col items-center gap-1 mb-4 text-sm text-slate-500 md:mb-6 md:text-base">
                 <span>Room Code:</span>
                 <button 
                   onClick={() => navigator.clipboard.writeText(window.location.href)}
-                  className="font-mono font-bold text-slate-800 bg-slate-100 px-2 py-1 rounded select-all text-xs md:text-sm break-all max-w-full hover:bg-blue-50 transition-colors"
+                  className="max-w-full px-2 py-1 font-mono text-xs font-bold break-all transition-colors rounded select-all text-slate-800 bg-slate-100 md:text-sm hover:bg-blue-50"
                   title="Click to copy link"
                 >
                     {roomCode || "Connecting..."}
@@ -473,7 +538,7 @@ const App: React.FC = () => {
                             {players.length} / 2+ players
                         </span>
                     </div>
-                    <p className="text-slate-600 text-sm md:text-base">
+                    <p className="text-sm text-slate-600 md:text-base">
                         {players.length >= 2 ? "Ready to start!" : "Waiting for friends to join..."}
                     </p>
                     <Button onClick={handleStartGame} disabled={players.length < 2} className="w-full">
@@ -483,8 +548,8 @@ const App: React.FC = () => {
                  </div>
              ) : (
                 <div className="space-y-3 md:space-y-4">
-                    <div className="animate-pulse text-lg md:text-xl text-blue-500 font-bold">Waiting for host to start...</div>
-                    <p className="text-slate-500 text-sm md:text-base">Sit tight! The game will begin soon.</p>
+                    <div className="text-lg font-bold text-blue-500 animate-pulse md:text-xl">Waiting for host to start...</div>
+                    <p className="text-sm text-slate-500 md:text-base">Sit tight! The game will begin soon.</p>
                 </div>
              )}
         </div>
@@ -492,15 +557,15 @@ const App: React.FC = () => {
   );
 
   const renderMobileHeader = () => (
-      <div className="md:hidden flex justify-between items-center p-2 bg-white border-b border-slate-200 shrink-0 shadow-sm z-30">
+      <div className="z-30 flex items-center justify-between p-2 bg-white border-b shadow-sm md:hidden border-slate-200 shrink-0">
         <div className="flex items-center gap-2">
-           <button onClick={handleLeave} className="text-red-400 font-bold text-xs border border-red-200 px-2 py-1 rounded active:scale-95 transition-transform">EXIT</button>
+           <button onClick={handleLeave} className="px-2 py-1 text-xs font-bold text-red-400 transition-transform border border-red-200 rounded active:scale-95">EXIT</button>
         </div>
         <div className="flex flex-col items-center flex-1 mx-2">
-             <div className="text-xs text-slate-400 uppercase tracking-wide">
+             <div className="text-xs tracking-wide uppercase text-slate-400">
                 {phase === GamePhase.DRAWING ? 'Guess the word' : phase === GamePhase.WORD_SELECT ? 'Choosing...' : ''}
              </div>
-             <div className="font-marker text-lg text-slate-900 tracking-widest leading-tight">
+             <div className="text-lg leading-tight tracking-widest font-marker text-slate-900">
                 {isMyTurn ? currentWord : (phase === GamePhase.DRAWING ? displayWord : (phase === GamePhase.ROUND_OVER ? currentWord : '...'))}
              </div>
         </div>
@@ -518,9 +583,10 @@ const App: React.FC = () => {
     <div className="h-[100dvh] w-full overflow-hidden text-slate-800 bg-slate-50 relative">
        <Confetti ref={confettiRef} />
        <ReactionOverlay ref={reactionRef} />
+       <VictoryPodium ref={victoryPodiumRef} />
        
        {phase === GamePhase.GAME_OVER && (
-           <Gallery items={gallery} onPlayAgain={handlePlayAgain} isHost={isHost} />
+           <Gallery items={gallery} onPlayAgain={handlePlayAgain} isHost={isHost} players={players} victoryPodiumRef={victoryPodiumRef} />
        )}
 
        {!isConnected ? (
@@ -535,7 +601,7 @@ const App: React.FC = () => {
              onJoin={handleJoin} onStartGame={handleStartGame}
            />
        ) : (
-           <div className="flex flex-col h-full relative z-10">
+           <div className="relative z-10 flex flex-col h-full">
                {/* Conditionally render ONLY ONE layout to ensure single canvas instance */}
                {isMobile ? (
                /* MOBILE LAYOUT (Skribbl.io style) */
@@ -544,9 +610,9 @@ const App: React.FC = () => {
                    {renderMobileHeader()}
                    
                    {/* Canvas Area - takes most of the screen */}
-                   <div className="flex-1 relative p-2 min-h-0 flex items-center justify-center">
+                   <div className="relative flex items-center justify-center flex-1 min-h-0 p-2">
                        {/* Canvas wrapper with aspect ratio */}
-                       <div className="w-full max-h-full bg-white rounded-xl shadow-lg border-2 border-slate-200 overflow-hidden relative" style={{ aspectRatio: '16/9' }}>
+                       <div className="relative w-full max-h-full overflow-hidden bg-white border-2 shadow-lg rounded-xl border-slate-200" style={{ aspectRatio: '16/9' }}>
                            <CanvasBoard 
                                ref={canvasRef} 
                                color={selectedColor} 
@@ -560,7 +626,7 @@ const App: React.FC = () => {
                            
                            {/* Drawer indicator - small overlay is fine inside canvas */}
                            {phase === GamePhase.DRAWING && (
-                               <div className="absolute top-2 left-2 bg-white/90 backdrop-blur px-2 py-1 rounded-full border border-slate-200 flex items-center gap-1 text-xs shadow-sm z-10">
+                               <div className="absolute z-10 flex items-center gap-1 px-2 py-1 text-xs border rounded-full shadow-sm top-2 left-2 bg-white/90 backdrop-blur border-slate-200">
                                    <span>{currentDrawer?.avatar || '?'}</span>
                                    <span className="font-bold text-slate-600 truncate max-w-[60px]">{currentDrawer?.name}</span>
                                    <span className="text-slate-400">is drawing</span>
@@ -613,9 +679,9 @@ const App: React.FC = () => {
                    </div>
                    
                    {/* Guess Input - Fixed at bottom */}
-                   <form onSubmit={handleSendMessage} className="p-2 bg-white border-t border-slate-200 flex gap-2 shrink-0 safe-area-bottom">
+                   <form onSubmit={handleSendMessage} className="flex gap-2 p-2 bg-white border-t border-slate-200 shrink-0 safe-area-bottom">
                        <input 
-                         className="flex-1 border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-blue-400 bg-white text-slate-900 placeholder:text-slate-400 text-base"
+                         className="flex-1 px-3 py-2 text-base bg-white border rounded-lg outline-none border-slate-300 focus:border-blue-400 text-slate-900 placeholder:text-slate-400"
                          placeholder={isMyTurn ? "You are drawing..." : "Type your guess here..."}
                          value={inputMessage}
                          onChange={e => setInputMessage(e.target.value)}
@@ -623,7 +689,7 @@ const App: React.FC = () => {
                        />
                        <button 
                          disabled={isMyTurn} 
-                         className="bg-blue-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-600 disabled:opacity-50 shadow-sm active:scale-95 transition-transform"
+                         className="px-4 py-2 font-bold text-white transition-transform bg-blue-500 rounded-lg shadow-sm hover:bg-blue-600 disabled:opacity-50 active:scale-95"
                        >
                          Send
                        </button>
@@ -641,21 +707,21 @@ const App: React.FC = () => {
                    />
 
                    {/* 2. CENTER AREA */}
-                   <main className="flex-1 flex flex-col min-w-0 bg-slate-200 relative">
-                       <div className="flex-1 relative p-4 flex flex-col min-h-0">
+                   <main className="relative flex flex-col flex-1 min-w-0 bg-slate-200">
+                       <div className="relative flex flex-col flex-1 min-h-0 p-4">
                             {/* Desktop Game Info Header */}
                             {phase !== GamePhase.LOBBY && phase !== GamePhase.GAME_OVER && (
-                                 <div className="absolute top-6 left-6 right-6 flex justify-between pointer-events-none z-20">
-                                     <div className="bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-md border border-slate-300 flex items-center gap-2">
-                                        <span className="text-slate-400 font-bold text-xs uppercase tracking-wider">Word</span>
+                                 <div className="absolute z-20 flex justify-between pointer-events-none top-6 left-6 right-6">
+                                     <div className="flex items-center gap-2 px-4 py-2 border rounded-full shadow-md bg-white/90 backdrop-blur border-slate-300">
+                                        <span className="text-xs font-bold tracking-wider uppercase text-slate-400">Word</span>
                                         <span className="font-marker text-xl text-slate-900 tracking-widest min-w-[100px] text-center">
                                             {displayWord || '...'}
                                         </span>
                                      </div>
                                      <div className="flex gap-2">
-                                         <div className="bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-md border border-slate-300 flex items-center gap-2">
+                                         <div className="flex items-center gap-2 px-4 py-2 border rounded-full shadow-md bg-white/90 backdrop-blur border-slate-300">
                                             <span className="text-xl">{currentDrawer?.avatar || '⏳'}</span>
-                                            <span className="font-bold text-slate-700 text-sm">{currentDrawer?.name ? `${currentDrawer.name}'s Turn` : 'Waiting...'}</span>
+                                            <span className="text-sm font-bold text-slate-700">{currentDrawer?.name ? `${currentDrawer.name}'s Turn` : 'Waiting...'}</span>
                                          </div>
                                          {phase === GamePhase.DRAWING && (
                                              <div className={`bg-white/90 backdrop-blur w-12 h-10 flex items-center justify-center rounded-full shadow-md border border-slate-300 font-marker text-xl ${timeLeft < 10 ? 'text-red-500' : 'text-slate-700'}`}>
@@ -666,7 +732,7 @@ const App: React.FC = () => {
                                  </div>
                             )}
 
-                            <div className="w-full h-full bg-white rounded-xl shadow-lg border-4 border-slate-300 overflow-hidden relative" style={{ aspectRatio: '16/9' }}>
+                            <div className="relative w-full h-full overflow-hidden bg-white border-4 shadow-lg rounded-xl border-slate-300" style={{ aspectRatio: '16/9' }}>
                                 <CanvasBoard 
                                     ref={canvasRef} 
                                     color={selectedColor} 
@@ -683,7 +749,7 @@ const App: React.FC = () => {
                                 {phase === GamePhase.ROUND_OVER && renderScoreboard()}
                                 
                                 {phase === GamePhase.DRAWING && !isMyTurn && (
-                                    <div className="absolute bottom-4 right-4 bg-yellow-100 text-yellow-800 text-xs px-3 py-1 rounded-full border border-yellow-300 pointer-events-none opacity-80 z-10 font-bold shadow-sm">
+                                    <div className="absolute z-10 px-3 py-1 text-xs font-bold text-yellow-800 bg-yellow-100 border border-yellow-300 rounded-full shadow-sm pointer-events-none bottom-4 right-4 opacity-80">
                                         You are guessing
                                     </div>
                                 )}

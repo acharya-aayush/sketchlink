@@ -169,41 +169,11 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
                     placeholder="Dog, Cat, Inside Joke..."
                 />
             </div>
-            
-            {roomCode && (
-                <div className="bg-yellow-50 border border-yellow-200 p-2 md:p-3 rounded text-xs md:text-sm text-yellow-800">
-                    <div className="flex items-center justify-between mb-2">
-                        <p className="font-bold">Room created!</p>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${players.length >= 2 ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-                            {players.length} / 2+ players
-                        </span>
-                    </div>
-                    <div className="flex justify-between items-center gap-2">
-                        <input 
-                            readOnly 
-                            value={window.location.href} 
-                            className="flex-1 bg-white px-2 py-1 rounded border border-yellow-300 font-mono text-xs select-all text-slate-600 truncate"
-                        />
-                        <button 
-                            onClick={() => navigator.clipboard.writeText(window.location.href)}
-                            className="bg-yellow-200 px-2 py-1 rounded text-yellow-800 text-xs font-bold hover:bg-yellow-300 shrink-0"
-                        >
-                            Copy Link
-                        </button>
-                    </div>
-                </div>
-            )}
         </div>
 
         <div className="flex gap-3 mt-auto md:mt-0">
             <Button onClick={() => setLobbyMode('HOME')} variant="secondary" className="flex-1">Cancel</Button>
-            {roomCode ? (
-                 <Button onClick={onStartGame} disabled={players.length < 2} className="flex-1">
-                     {players.length < 2 ? 'Need 2+ Players' : 'Start Game'}
-                 </Button>
-            ) : (
-                 <Button onClick={onHostStart} disabled={!playerName} className="flex-1">Create Room</Button>
-            )}
+            <Button onClick={onHostStart} disabled={!playerName} className="flex-1">Create Room</Button>
         </div>
     </div>
   );

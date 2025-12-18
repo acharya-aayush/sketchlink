@@ -1,15 +1,36 @@
 
-import React from 'react';
-import { GalleryItem } from '../types';
+import React, { useEffect, useRef, useState } from 'react';
+import { GalleryItem, Player } from '../types';
 import { Button } from './Button';
+import { VictoryPodiumHandle } from './VictoryPodium';
 
 interface GalleryProps {
   items: GalleryItem[];
   onPlayAgain: () => void;
   isHost: boolean;
+  players?: Player[];
+  victoryPodiumRef?: React.RefObject<VictoryPodiumHandle>;
 }
 
-export const Gallery: React.FC<GalleryProps> = ({ items, onPlayAgain, isHost }) => {
+export const Gallery: React.FC<GalleryProps> = ({ items, onPlayAgain, isHost, players, victoryPodiumRef }) => {
+  const [showGallery, setShowGallery] = useState(false);
+  const hasShownVictory = useRef(false);
+  
+  // Show victory podium first, then gallery
+  useEffect(() => {
+    if (players && players.length > 0 && victoryPodiumRef?.current && !hasShownVictory.current) {
+      hasShownVictory.current = true;
+      victoryPodiumRef.current.show(players);
+      // Show gallery after a delay to let people enjoy the podium
+      const timer = setTimeout(() => {
+        setShowGallery(true);
+      }, 6000);
+      return () => clearTimeout(timer);
+    } else {
+      // No victory animation, show gallery immediately
+      setShowGallery(true);
+    }
+  }, [players, victoryPodiumRef]);
   
   const downloadImage = (item: GalleryItem) => {
       const link = document.createElement('a');
@@ -17,6 +38,10 @@ export const Gallery: React.FC<GalleryProps> = ({ items, onPlayAgain, isHost }) 
       link.download = `sketchlink-${item.word}-${item.drawer}.png`;
       link.click();
   };
+
+  if (!showGallery) {
+    return null; // Victory podium is showing
+  }
 
   return (
     <div className="absolute inset-0 bg-slate-50 z-40 overflow-y-auto p-4 md:p-8 flex flex-col items-center">
