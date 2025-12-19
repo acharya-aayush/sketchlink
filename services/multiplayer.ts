@@ -4,18 +4,26 @@ import { GameEvent, GameSettings, GalleryItem } from '../types';
 
 type Listener = (event: GameEvent) => void;
 
-// Use environment variable or detect at runtime
+// Get server URL from environment variable
 // Vite exposes env vars with import.meta.env
 const getServerUrl = () => {
-  // Check if we're in the browser
+  // Check for environment variable first
+  const envUrl = import.meta.env.VITE_SERVER_URL;
+  if (envUrl) {
+    return envUrl;
+  }
+  
+  // Fallback: localhost for development
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
       return 'http://localhost:3001';
     }
   }
-  // Production - use Render server
-  return 'https://sketchlink-server.onrender.com';
+  
+  // No env var set and not localhost - warn developer
+  console.warn('VITE_SERVER_URL not set! Set it in .env or Vercel/Netlify dashboard.');
+  return 'http://localhost:3001';
 };
 
 const SERVER_URL = getServerUrl();
