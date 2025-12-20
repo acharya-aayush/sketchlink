@@ -153,12 +153,16 @@ class GameRoom {
       const wasHost = this.players[index].isHost;
       const wasDrawer = this.players[index].isDrawer;
       const playerName = this.players[index].name;
+      const playerId = this.players[index].id;
+      
+      // Remove from guessed set if they guessed
+      this.playersGuessed.delete(playerId);
+      
       this.players.splice(index, 1);
 
       // Migrate Host to next available player
       if (wasHost && this.players.length > 0) {
         this.players[0].isHost = true;
-        // Notify room about host change
         this.broadcast('CHAT_MESSAGE', {
           id: Date.now().toString(),
           sender: 'System',
@@ -180,15 +184,74 @@ class GameRoom {
         });
       }
       
-      // Handle Drawer Disconnect - adjust drawer index
-      if (wasDrawer && this.players.length > 0 && this.phase !== 'LOBBY') {
+      // If no players left, clean up timers
+      if (this.players.length === 0) {
+        if (this.timerInterval) clearInterval(this.timerInterval);
+        if (this.nextTurnTimeout) clearTimeout(this.nextTurnTimeout);
+        return;
+      }
+      
+      // If only 1 player left during active game, go back to lobby
+      if (this.players.length === 1 && this.phase !== 'LOBBY' && this.phase !== 'GAME_OVER') {
+        if (this.timerInterval) clearInterval(this.timerInterval);
+        if (this.nextTurnTimeout) clearTimeout(this.nextTurnTimeout);
+        this.phase = 'LOBBY';
+        this.players[0].isDrawer = false;
+        this.currentWord = '';
+        this.broadcast('CHAT_MESSAGE', {
+          id: Date.now().toString(),
+          sender: 'System',
+          text: `Not enough players. Returning to lobby.`,
+          isSystem: true,
+          timestamp: Date.now()
+        });
+        this.broadcastState();
+        this.broadcast('SYNC_PLAYERS', this.players);
+        return;
+      }
+      
+      // Handle Drawer/Word-Selector Disconnect
+      if (wasDrawer && this.phase !== 'LOBBY' && this.phase !== 'GAME_OVER') {
+        // Clear timers
+        if (this.timerInterval) clearInterval(this.timerInterval);
+        if (this.nextTurnTimeout) clearTimeout(this.nextTurnTimeout);
+        
         // Adjust currentDrawerIndex if needed
         if (this.currentDrawerIndex >= this.players.length) {
-          this.currentDrawerIndex = 0;
+          this.currentDrawerIndex = this.players.length - 1;
         }
+        // If the removed player was before current index, adjust
+        if (index < this.currentDrawerIndex) {
+          this.currentDrawerIndex--;
+        }
+        
         this.currentDrawing = []; // Clear drawing state
-        this.endRound(); // End round immediately if drawer leaves
+        
+        // Notify and skip to next turn
+        this.broadcast('CHAT_MESSAGE', {
+          id: Date.now().toString(),
+          sender: 'System',
+          text: `Drawer left! Skipping to next turn...`,
+          isSystem: true,
+          timestamp: Date.now()
+        });
+        
+        // Clear canvas for everyone
+        this.broadcast('CLEAR_CANVAS');
+        
+        // Move to next turn after short delay
+        this.nextTurnTimeout = setTimeout(() => this.nextTurn(), 2000);
+      } else {
+        // Non-drawer left - check if all remaining players have guessed
+        if (this.phase === 'DRAWING') {
+          const nonDrawerPlayers = this.players.filter(p => !p.isDrawer);
+          if (nonDrawerPlayers.length > 0 && this.playersGuessed.size >= nonDrawerPlayers.length) {
+            this.endRound('Everyone');
+          }
+        }
       }
+      
+      this.broadcast('SYNC_PLAYERS', this.players);
     }
   }
 
