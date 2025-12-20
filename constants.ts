@@ -26,7 +26,7 @@ export const DIFFICULTY_CONFIG = {
 };
 
 export const AVATARS = [
-  '🐶', '🐱', '🐼', '🦊', 
+  '😌', '🐱', '🐼', '🦊', 
   '🐸', '👻', '👽', '🤖',
   '🎨', '✏️', '🍕', '🍦',
   '🤠', '😎', '🤪', '🥳'

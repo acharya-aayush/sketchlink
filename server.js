@@ -138,6 +138,9 @@ class GameRoom {
     
     // Store current drawing for late joiners
     this.currentDrawing = []; // Array of draw events (strokes, fills, clears)
+    
+    // Track which players have guessed correctly this round
+    this.playersGuessed = new Set();
   }
 
   addPlayer(player) {
@@ -245,6 +248,7 @@ class GameRoom {
   selectWord(word) {
     this.currentWord = word;
     this.revealedIndices.clear();
+    this.playersGuessed.clear(); // Reset guessed players for new round
     this.phase = 'DRAWING';
     this.timeLeft = this.settings.drawTime;
     this.currentDrawing = []; // Clear drawing state for new round
@@ -297,7 +301,17 @@ class GameRoom {
     this.phase = 'ROUND_OVER';
     this.timeLeft = 0;
     
-    const text = winnerName ? `${winnerName} guessed the word!` : `Time's up! The word was ${this.currentWord}`;
+    // Generate appropriate message
+    let text;
+    if (winnerName === 'Everyone') {
+      text = `Everyone guessed the word! 🎉`;
+    } else if (winnerName) {
+      text = `${winnerName} guessed the word!`;
+    } else {
+      const guessedCount = this.playersGuessed.size;
+      const totalGuessers = this.players.filter(p => !p.isDrawer).length;
+      text = `Time's up! ${guessedCount}/${totalGuessers} guessed. The word was "${this.currentWord}"`;
+    }
     
     this.broadcast('CHAT_MESSAGE', {
         id: Date.now().toString(),
@@ -554,20 +568,35 @@ io.on('connection', (socket) => {
              const player = room.players.find(p => p.id === socket.id);
 
              if (guess === target && player && !player.isDrawer) {
+                 // Check if player already guessed
+                 if (room.playersGuessed.has(player.id)) {
+                     return; // Already guessed, ignore
+                 }
+                 
                  // Correct Guess!
-                 // Calculate score
-                 const points = 100 + Math.floor(room.timeLeft * 2);
-                 player.score += points;
+                 room.playersGuessed.add(player.id);
+                 
+                 // Calculate score (earlier guesses = more points)
+                 const guessOrder = room.playersGuessed.size;
+                 const basePoints = 100 + Math.floor(room.timeLeft * 2);
+                 const orderBonus = Math.max(0, 50 - (guessOrder - 1) * 10); // First guesser gets +50, decreases
+                 player.score += basePoints + orderBonus;
                  
                  const drawer = room.players[room.currentDrawerIndex];
-                 if (drawer) drawer.score += 50;
+                 if (drawer) drawer.score += 25; // Drawer gets points for each correct guess
 
                  // Mark message as correct and hide the actual word
                  msg.isCorrect = true;
                  msg.text = `${player.name} guessed the word! 🎉`;
                  room.broadcast('CHAT_MESSAGE', msg);
                  room.broadcastState(); // Sync scores
-                 room.endRound(player.name);
+                 
+                 // Check if all non-drawer players have guessed
+                 const nonDrawerPlayers = room.players.filter(p => !p.isDrawer);
+                 if (room.playersGuessed.size >= nonDrawerPlayers.length) {
+                     // Everyone guessed! End round
+                     room.endRound('Everyone');
+                 }
                  return;
              }
              
