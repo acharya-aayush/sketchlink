@@ -43,7 +43,6 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [cursorPos, setCursorPos] = useState<Point | null>(null);
   
   // History Management
   const history = useRef<HistoryItem[]>([]);
@@ -308,21 +307,6 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
       y: (clientY - rect.top) * scaleY 
     };
   };
-
-  // Get screen position for cursor display (inverse of getCoordinates)
-  const getScreenPosition = (canvasPoint: Point): Point | null => {
-    const canvas = canvasRef.current;
-    if (!canvas) return null;
-    
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = rect.width / canvas.width;
-    const scaleY = rect.height / canvas.height;
-    
-    return {
-      x: canvasPoint.x * scaleX + rect.left,
-      y: canvasPoint.y * scaleY + rect.top
-    };
-  };
     
   const handlePointerDown = (e: React.MouseEvent | React.TouchEvent) => {
     if ('touches' in e) e.preventDefault();
@@ -387,12 +371,6 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
   const handlePointerMove = (e: React.MouseEvent | React.TouchEvent) => {
     if ('touches' in e) e.preventDefault();
 
-    // Cursor update
-    if (!disabled && !('touches' in e)) {
-        const point = getCoordinates(e);
-        if (point) setCursorPos(point);
-    }
-
     if (!isDrawing || disabled) return;
     const point = getCoordinates(e);
     if (!point) return;
@@ -453,21 +431,20 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
     }
   };
 
-  // Calculate cursor screen position for display
-  const cursorScreenPos = cursorPos ? getScreenPosition(cursorPos) : null;
-
-  // Get cursor style based on tool
+  // Get cursor style based on tool - simple CSS cursors for performance
   const getCursorClass = () => {
     if (disabled) return 'cursor-default';
-    if (tool === TOOLS.FILL) return 'cursor-crosshair'; // Will use custom SVG cursor
-    return 'cursor-none'; // Hide cursor, we draw our own
+    switch (tool) {
+      case TOOLS.FILL: return 'cursor-crosshair';
+      case TOOLS.ERASER: return 'cursor-cell';
+      default: return 'cursor-crosshair';
+    }
   };
 
   return (
     <div 
         ref={containerRef} 
         className={`w-full h-full relative bg-white overflow-hidden touch-none select-none ${getCursorClass()}`}
-        onMouseLeave={() => setCursorPos(null)}
         style={{ aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}` }}
     >
       <canvas
@@ -482,40 +459,6 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
         className="w-full h-full block touch-none"
         style={{ imageRendering: 'auto' }}
       />
-      
-      {/* Brush/Eraser Cursor */}
-      {!disabled && cursorScreenPos && (tool === TOOLS.PENCIL || tool === TOOLS.MARKER || tool === TOOLS.ERASER) && (
-          <div 
-            className="pointer-events-none fixed rounded-full border-2 z-50 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-75"
-            style={{ 
-                left: cursorScreenPos.x, 
-                top: cursorScreenPos.y,
-                width: Math.max(8, strokeWidth * 0.8), 
-                height: Math.max(8, strokeWidth * 0.8),
-                backgroundColor: tool === TOOLS.ERASER ? 'transparent' : color,
-                borderColor: tool === TOOLS.ERASER ? '#666' : 'rgba(0,0,0,0.3)',
-                borderStyle: tool === TOOLS.ERASER ? 'dashed' : 'solid',
-                opacity: tool === TOOLS.MARKER ? 0.7 : 0.9,
-            }}
-          />
-      )}
-      
-      {/* Fill Tool Cursor - Paint Bucket */}
-      {!disabled && cursorScreenPos && tool === TOOLS.FILL && (
-          <div 
-            className="pointer-events-none fixed z-50 transform -translate-x-1 -translate-y-1"
-            style={{ left: cursorScreenPos.x, top: cursorScreenPos.y }}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              {/* Paint bucket icon */}
-              <path d="M19 11V9a2 2 0 00-2-2H7a2 2 0 00-2 2v2" stroke="#333" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M5 11h14v8a2 2 0 01-2 2H7a2 2 0 01-2-2v-8z" fill={color} stroke="#333" strokeWidth="1.5"/>
-              <path d="M12 7V3M9 5l3-2 3 2" stroke="#333" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              {/* Drip */}
-              <circle cx="20" cy="18" r="2" fill={color} stroke="#333" strokeWidth="1"/>
-            </svg>
-          </div>
-      )}
     </div>
   );
 });

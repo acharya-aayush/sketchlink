@@ -511,7 +511,11 @@ const App: React.FC = () => {
                     <div key={p.id} className={`flex justify-between items-center p-2 md:p-3 rounded-lg border-2 ${p.id === drawerId ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200'}`}>
                         <div className="flex items-center gap-2 md:gap-3">
                             <span className="w-5 text-sm font-bold text-slate-400 md:w-6 md:text-base">#{i+1}</span>
-                            <span className="text-lg md:text-2xl">{p.avatar}</span>
+                            {p.customAvatar ? (
+                              <img src={p.customAvatar} alt="" className="object-cover w-8 h-8 border-2 rounded-full md:w-10 md:h-10 border-slate-200" />
+                            ) : (
+                              <span className="text-lg md:text-2xl">{p.avatar}</span>
+                            )}
                             <span className="font-handwritten text-base md:text-xl truncate max-w-[100px] md:max-w-none">{p.name} {p.id === drawerId && '✏️'}</span>
                         </div>
                         <span className="text-base font-bold text-green-600 md:text-xl">{p.score}pts</span>
@@ -528,12 +532,21 @@ const App: React.FC = () => {
 
   const renderWordSelect = () => {
     if (!isMyTurn) {
-      const drawerName = players.find(p => p.id === drawerId)?.name || 'Unknown';
-      const drawerAvatar = players.find(p => p.id === drawerId)?.avatar || '👤';
+      const drawer = players.find(p => p.id === drawerId);
+      const drawerName = drawer?.name || 'Unknown';
+      const drawerCustomAvatar = drawer?.customAvatar;
+      const drawerAvatar = drawer?.avatar || '👤';
       return (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-4 text-center bg-slate-100/90 backdrop-blur-sm rounded-xl">
            <div className="mb-2 text-2xl md:text-4xl font-marker animate-pulse text-slate-600 md:mb-4">Waiting...</div>
-           <p className="text-base text-slate-500 md:text-xl">{drawerAvatar} {drawerName} is choosing a word.</p>
+           <p className="flex items-center justify-center gap-2 text-base text-slate-500 md:text-xl">
+             {drawerCustomAvatar ? (
+               <img src={drawerCustomAvatar} alt="" className="inline-block object-cover w-8 h-8 border-2 rounded-full border-slate-300" />
+             ) : (
+               <span>{drawerAvatar}</span>
+             )}
+             {drawerName} is choosing a word.
+           </p>
         </div>
       );
     }
@@ -668,7 +681,11 @@ const App: React.FC = () => {
                            {/* Drawer indicator - small overlay is fine inside canvas */}
                            {phase === GamePhase.DRAWING && (
                                <div className="absolute z-10 flex items-center gap-1 px-2 py-1 text-xs border rounded-full shadow-sm top-2 left-2 bg-white/90 backdrop-blur border-slate-200">
-                                   <span>{currentDrawer?.avatar || '?'}</span>
+                                   {currentDrawer?.customAvatar ? (
+                                     <img src={currentDrawer.customAvatar} alt="" className="object-cover w-5 h-5 rounded-full" />
+                                   ) : (
+                                     <span>{currentDrawer?.avatar || '?'}</span>
+                                   )}
                                    <span className="font-bold text-slate-600 truncate max-w-[60px]">{currentDrawer?.name}</span>
                                    <span className="text-slate-400">is drawing</span>
                                </div>
@@ -761,7 +778,11 @@ const App: React.FC = () => {
                                      </div>
                                      <div className="flex gap-2">
                                          <div className="flex items-center gap-2 px-4 py-2 border rounded-full shadow-md bg-white/90 backdrop-blur border-slate-300">
-                                            <span className="text-xl">{currentDrawer?.avatar || '⏳'}</span>
+                                            {currentDrawer?.customAvatar ? (
+                                              <img src={currentDrawer.customAvatar} alt="" className="object-cover w-8 h-8 rounded-full" />
+                                            ) : (
+                                              <span className="text-xl">{currentDrawer?.avatar || '⏳'}</span>
+                                            )}
                                             <span className="text-sm font-bold text-slate-700">{currentDrawer?.name ? `${currentDrawer.name}'s Turn` : 'Waiting...'}</span>
                                          </div>
                                          {phase === GamePhase.DRAWING && (

@@ -14,6 +14,7 @@ interface VictoryPodiumProps {
 interface PodiumPlayer {
   name: string;
   avatar: string;
+  customAvatar?: string;
   score: number;
   rank: number;
 }
@@ -132,6 +133,7 @@ export const VictoryPodium = forwardRef<VictoryPodiumHandle, VictoryPodiumProps>
       const topThree = sorted.slice(0, 3).map((p, i) => ({
         name: p.name,
         avatar: p.avatar,
+        customAvatar: p.customAvatar,
         score: p.score,
         rank: i + 1
       }));
@@ -255,6 +257,15 @@ export const VictoryPodium = forwardRef<VictoryPodiumHandle, VictoryPodiumProps>
 
   const getPlayerByRank = (rank: number) => podiumPlayers.find(p => p.rank === rank);
 
+  // Helper to render avatar (custom image or emoji)
+  const renderAvatar = (player: PodiumPlayer | undefined, size: string, fallback: string) => {
+    if (!player) return <span>{fallback}</span>;
+    if (player.customAvatar) {
+      return <img src={player.customAvatar} alt="" className={`object-cover rounded-full ${size}`} />;
+    }
+    return <span>{player.avatar || fallback}</span>;
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden">
       {/* Background overlay */}
@@ -301,7 +312,7 @@ export const VictoryPodium = forwardRef<VictoryPodiumHandle, VictoryPodiumProps>
             <div className={`podium-content ${activeSlots.includes(2) ? 'revealed' : ''}`}>
               <div className="avatar-container">
                 <div className={`avatar text-4xl md:text-6xl ${activeSlots.includes(2) ? 'animate-bounce-avatar' : ''}`}>
-                  {getPlayerByRank(2)?.avatar || '🥈'}
+                  {renderAvatar(getPlayerByRank(2), 'w-12 h-12 md:w-16 md:h-16', '🥈')}
                 </div>
                 <div className="name text-white text-sm md:text-lg font-bold mt-2 truncate max-w-full px-2">
                   {getPlayerByRank(2)?.name || 'Runner Up'}
@@ -332,7 +343,7 @@ export const VictoryPodium = forwardRef<VictoryPodiumHandle, VictoryPodiumProps>
             <div className={`podium-content ${activeSlots.includes(1) ? 'revealed' : ''}`}>
               <div className="avatar-container">
                 <div className={`avatar text-5xl md:text-7xl ${activeSlots.includes(1) ? 'animate-winner-bounce' : ''}`}>
-                  {getPlayerByRank(1)?.avatar || '🥇'}
+                  {renderAvatar(getPlayerByRank(1), 'w-16 h-16 md:w-20 md:h-20', '🥇')}
                 </div>
                 <div className="name text-white text-base md:text-xl font-bold mt-2 truncate max-w-full px-2">
                   {getPlayerByRank(1)?.name || 'Winner'}
@@ -361,7 +372,7 @@ export const VictoryPodium = forwardRef<VictoryPodiumHandle, VictoryPodiumProps>
             <div className={`podium-content ${activeSlots.includes(3) ? 'revealed' : ''}`}>
               <div className="avatar-container">
                 <div className={`avatar text-3xl md:text-5xl ${activeSlots.includes(3) ? 'animate-bounce-avatar' : ''}`}>
-                  {getPlayerByRank(3)?.avatar || '🥉'}
+                  {renderAvatar(getPlayerByRank(3), 'w-10 h-10 md:w-14 md:h-14', '🥉')}
                 </div>
                 <div className="name text-white text-sm md:text-base font-bold mt-2 truncate max-w-full px-2">
                   {getPlayerByRank(3)?.name || 'Third'}

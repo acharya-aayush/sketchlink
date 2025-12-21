@@ -1,18 +1,21 @@
 
 export const WORD_LIBRARY = {
   Easy: [
-    'Apple', 'Sun', 'House', 'Tree', 'Car', 'Book', 'Chair', 'Fish', 'Bird', 'Moon',
-    'Ball', 'Smile', 'Cloud', 'Star', 'Cat', 'Dog', 'Hat', 'Eye', 'Mouth', 'Door'
+    'Pizza Slice', 'Donut', 'Cactus', 'Sunglasses', 'Ghost', 'Taco', 'Sword', 'Snail', 
+    'Tooth', 'Mountains', 'Popsicle', 'Lightbulb', 'Stick Man', 'Envelope', 'Snake', 
+    'Coffee Mug', 'Butterfly', 'Moon', 'Star', 'Key'
   ],
   Medium: [
-    'Pizza', 'Ice Cream', 'Boat', 'Plane', 'Clock', 'Phone', 'Computer', 'Guitar',
-    'Robot', 'Alien', 'Ghost', 'Spider', 'Turtle', 'Rabbit', 'Duck', 'Horse', 
-    'Camera', 'Watch', 'Lamp', 'Shoes'
+    'Campfire', 'Scuba Diver', 'Skateboard', 'Broken Heart', 'Stinky Sock', 'Ice Cube', 
+    'Sandwich', 'Bathtub', 'Jellyfish', 'Flying Saucer', 'Treasure Map', 'Brain Freeze', 
+    'Melting Snowman', 'Angry Cloud', 'Hammer', 'Spider Web', 'Baguette', 'Rocket Ship', 
+    'Windmill', 'Popcorn'
   ],
   Hard: [
-    'Astronaut', 'Playground', 'Waterfall', 'Hurricane', 'Hospital', 'Library',
-    'Dragon', 'Unicorn', 'Dinosaur', 'Pyramid', 'Sphinx', 'Volcano', 'Tornado',
-    'Cactus', 'Kangaroo', 'Octopus', 'Penguin', 'Giraffe', 'Zebra', 'Elephant'
+    'Roller Coaster', 'Time Machine', 'Electric Guitar', 'Haunted House', 'Solar System', 
+    'Underwater Party', 'Invisible Man', 'Rainy Day', 'Dragon Fire', 'Construction Site', 
+    'Eiffel Tower', 'Limousine', 'Zebra', 'Diving Board', 'Backpack', 'Firetruck', 
+    'Statue of Liberty', 'Microscope', 'Trombone', 'Video Game'
   ]
 };
 

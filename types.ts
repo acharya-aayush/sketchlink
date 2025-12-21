@@ -91,28 +91,37 @@ export const TOOLS = {
 
 export type ToolType = typeof TOOLS[keyof typeof TOOLS];
 
-// Curated "Ink & Paper" color palette - natural, sketch-friendly colors
+// Expanded color palette - vibrant + classic + essentials
 export const COLORS = [
-  '#2C2C2C', // Ink Black (soft black)
-  '#5A5A5A', // Pencil Lead
-  '#8B7355', // Sepia
-  '#1A4593', // Blue Pen
-  '#2D5016', // Forest Green
-  '#8B1538', // Burgundy
-  '#6B3FA0', // Violet
-  '#C65102', // Rust Orange
-  '#B8860B', // Dark Goldenrod
-  '#20B2AA', // Teal
-  '#CD5C5C', // Indian Red
-  '#F9F7F2', // Paper White (creamy)
+  // Row 1: Basics
+  '#000000', // Pure Black
+  '#4A4A4A', // Dark Gray
+  '#9E9E9E', // Medium Gray  
+  '#FFFFFF', // White
+  // Row 2: Warm colors
+  '#FF0000', // Red
+  '#FF5722', // Deep Orange
+  '#FF9800', // Orange
+  '#FFEB3B', // Yellow
+  // Row 3: Cool colors
+  '#4CAF50', // Green
+  '#00BCD4', // Cyan
+  '#2196F3', // Blue
+  '#9C27B0', // Purple
+  // Row 4: Pastels & extras
+  '#E91E63', // Pink
+  '#8BC34A', // Light Green
+  '#03A9F4', // Light Blue
+  '#795548', // Brown
 ];
 
-// Highlighter colors (semi-transparent)
-export const HIGHLIGHTERS = [
-  '#FDFD9666', // Yellow
-  '#90EE9066', // Light Green
-  '#FFB6C166', // Pink
-  '#87CEEB66', // Sky Blue
+// Alternative skin tones (for avatars etc)
+export const SKIN_TONES = [
+  '#FFDFC4', // Light
+  '#F0C08A', // Medium-light
+  '#D4A574', // Medium
+  '#8D5524', // Medium-dark
+  '#5C4033', // Dark
 ];
 
 export const STROKE_WIDTHS = [3, 8, 16, 28];
