@@ -36,16 +36,20 @@ export const PlayerList: React.FC<PlayerListProps> = ({ players, drawerId, onLea
                   ${isMe ? 'ring-1 ring-blue-300' : ''}`}
               >
                 <span className={`font-bold text-xs w-4 ${i < 3 ? 'text-yellow-500' : 'text-slate-400'}`}>#{i+1}</span>
-                <div className="relative w-6 h-6 shrink-0">
+                <div className="relative w-7 h-7 shrink-0 flex items-center justify-center">
                   {p.customAvatar ? (
                     <img 
                       src={p.customAvatar} 
                       alt={`${p.name}'s avatar`}
-                      className="w-6 h-6 rounded-full border border-slate-200 object-cover bg-white"
+                      className="w-7 h-7 rounded-full border border-slate-300 object-cover bg-white"
+                      onError={(e) => {
+                        // Fallback to emoji if image fails to load
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                      }}
                     />
-                  ) : (
-                    <span className="text-lg leading-none">{p.avatar}</span>
-                  )}
+                  ) : null}
+                  <span className={`text-xl leading-none ${p.customAvatar ? 'hidden' : ''}`}>{p.avatar}</span>
                   {isDrawer && <span className="absolute -bottom-0.5 -right-0.5 text-[10px]">✏️</span>}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -91,16 +95,19 @@ export const PlayerList: React.FC<PlayerListProps> = ({ players, drawerId, onLea
           return (
             <div key={p.id} className={`relative flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${isDrawer ? 'bg-amber-50 border-amber-300 shadow-sm' : 'bg-white border-slate-100'}`}>
                <div className={`font-bold w-5 text-center text-sm ${i < 3 ? 'text-yellow-500' : 'text-slate-400'}`}>#{i+1}</div>
-               <div className="relative w-8 h-8 shrink-0 flex items-center justify-center">
+               <div className="relative w-10 h-10 shrink-0 flex items-center justify-center">
                  {p.customAvatar ? (
                    <img 
                      src={p.customAvatar} 
                      alt={`${p.name}'s avatar`}
-                     className="w-8 h-8 rounded-full border-2 border-slate-200 object-cover bg-white"
+                     className="w-10 h-10 rounded-full border-2 border-slate-200 object-cover bg-white"
+                     onError={(e) => {
+                       e.currentTarget.style.display = 'none';
+                       e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                     }}
                    />
-                 ) : (
-                   <span className="text-2xl">{p.avatar}</span>
-                 )}
+                 ) : null}
+                 <span className={`text-2xl ${p.customAvatar ? 'hidden' : ''}`}>{p.avatar}</span>
                  {isDrawer && <div className="absolute -bottom-1 -right-1 text-sm drop-shadow-md">✏️</div>}
                </div>
                <div className="flex-1 min-w-0">
