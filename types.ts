@@ -47,7 +47,8 @@ export interface ChatMessage {
 export interface Player {
   id: string;
   name: string;
-  avatar: string;
+  avatar: string; // Emoji avatar (fallback)
+  customAvatar?: string; // Base64 PNG of hand-drawn avatar
   score: number;
   isHost: boolean;
   isDrawer: boolean;
@@ -83,27 +84,35 @@ export type GameEvent =
 
 export const TOOLS = {
   PENCIL: 'pencil',
+  MARKER: 'marker',
   ERASER: 'eraser',
   FILL: 'fill',
 } as const;
 
 export type ToolType = typeof TOOLS[keyof typeof TOOLS];
 
+// Curated "Ink & Paper" color palette - natural, sketch-friendly colors
 export const COLORS = [
-  '#000000', // Black
-  '#475569', // Slate
-  '#ef4444', // Red
-  '#f97316', // Orange
-  '#eab308', // Yellow
-  '#84cc16', // Lime
-  '#22c55e', // Green
-  '#06b6d4', // Cyan
-  '#3b82f6', // Blue
-  '#6366f1', // Indigo
-  '#a855f7', // Purple
-  '#ec4899', // Pink
-  '#78350f', // Brown
-  '#ffffff', // White
+  '#2C2C2C', // Ink Black (soft black)
+  '#5A5A5A', // Pencil Lead
+  '#8B7355', // Sepia
+  '#1A4593', // Blue Pen
+  '#2D5016', // Forest Green
+  '#8B1538', // Burgundy
+  '#6B3FA0', // Violet
+  '#C65102', // Rust Orange
+  '#B8860B', // Dark Goldenrod
+  '#20B2AA', // Teal
+  '#CD5C5C', // Indian Red
+  '#F9F7F2', // Paper White (creamy)
 ];
 
-export const STROKE_WIDTHS = [2, 5, 10, 20];
+// Highlighter colors (semi-transparent)
+export const HIGHLIGHTERS = [
+  '#FDFD9666', // Yellow
+  '#90EE9066', // Light Green
+  '#FFB6C166', // Pink
+  '#87CEEB66', // Sky Blue
+];
+
+export const STROKE_WIDTHS = [3, 8, 16, 28];

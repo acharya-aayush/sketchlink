@@ -1,8 +1,8 @@
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { Button } from './Button';
 import { GameSettings, Player } from '../types';
-import { AVATARS } from '../constants';
+import { AvatarNapkin, AvatarNapkinRef } from './AvatarNapkin';
 
 interface LobbyScreenProps {
   lobbyMode: 'HOME' | 'HOST' | 'JOIN' | 'LOADING' | 'WAKING_SERVER';
@@ -11,6 +11,8 @@ interface LobbyScreenProps {
   setPlayerName: (name: string) => void;
   playerAvatar: string;
   setPlayerAvatar: (avatar: string) => void;
+  customAvatar: string | null;
+  setCustomAvatar: (avatar: string | null) => void;
   roomCode: string;
   setRoomCode: (code: string) => void;
   gameSettings: GameSettings;
@@ -22,34 +24,41 @@ interface LobbyScreenProps {
   onHostStart: () => void;
   onJoin: () => void;
   onStartGame: () => void;
+  serverStatus: 'sleeping' | 'waking' | 'ready';
+  serverProgress: number;
 }
 
 export const LobbyScreen: React.FC<LobbyScreenProps> = ({
   lobbyMode, setLobbyMode,
   playerName, setPlayerName,
   playerAvatar, setPlayerAvatar,
+  customAvatar, setCustomAvatar,
   roomCode, setRoomCode,
   gameSettings, setGameSettings,
   joinError, players, isHost,
-  onCreateLobby, onHostStart, onJoin, onStartGame
+  onCreateLobby, onHostStart, onJoin, onStartGame,
+  serverStatus, serverProgress
 }) => {
+  const napkinRef = useRef<AvatarNapkinRef>(null);
 
-  const AvatarSelector = () => (
-      <div className="mb-3 md:mb-4">
-          <label className="block text-slate-600 font-bold mb-1 md:mb-2 text-sm md:text-base">Choose Avatar</label>
-          <div className="grid grid-cols-8 gap-1 md:gap-2">
-              {AVATARS.map(avatar => (
-                  <button
-                    key={avatar}
-                    type="button"
-                    onClick={() => setPlayerAvatar(avatar)}
-                    className={`text-xl md:text-2xl p-1 rounded hover:bg-blue-50 transition-colors ${playerAvatar === avatar ? 'bg-blue-100 ring-2 ring-blue-400' : ''}`}
-                  >
-                      {avatar}
-                  </button>
-              ))}
-          </div>
+  // Avatar preview button for showing current selection in forms
+  const AvatarPreview = () => (
+    <button
+      onClick={() => napkinRef.current?.openEditor()}
+      className="flex items-center gap-2 px-3 py-2 bg-amber-50 border-2 border-amber-200 rounded-lg hover:bg-amber-100 transition-all group w-full justify-center"
+    >
+      <div className="w-10 h-10 rounded-full bg-white border-2 border-slate-200 flex items-center justify-center overflow-hidden">
+        {customAvatar ? (
+          <img src={customAvatar} alt="avatar" className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-2xl">{playerAvatar}</span>
+        )}
       </div>
+      <div className="text-left">
+        <div className="text-sm text-slate-700 font-bold">{playerName || 'Enter name...'}</div>
+        <div className="text-xs text-slate-400">Tap to edit profile ✏️</div>
+      </div>
+    </button>
   );
 
   const renderLobbyHome = () => (
@@ -76,21 +85,18 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
   );
 
   const renderWakingServer = () => (
-    <div className="flex flex-col items-center justify-center space-y-4 animate-fade-in max-w-sm text-center">
-        <div className="text-6xl animate-bounce">☕</div>
-        <p className="text-2xl font-marker text-slate-700">Waking up server...</p>
-        <p className="text-slate-500 text-sm">Free servers sleep after 15 min of inactivity.<br/>This takes about 30 seconds, hang tight!</p>
-        <div className="w-48 h-2 bg-slate-200 rounded-full overflow-hidden">
-          <div className="h-full bg-blue-500 rounded-full animate-pulse" style={{width: '60%', animation: 'loading 2s ease-in-out infinite'}}></div>
-        </div>
-        <style>{`
-          @keyframes loading {
-            0% { width: 0%; }
-            50% { width: 80%; }
-            100% { width: 100%; }
-          }
-        `}</style>
-    </div>
+    <AvatarNapkin
+      ref={napkinRef}
+      playerName={playerName}
+      setPlayerName={setPlayerName}
+      playerAvatar={playerAvatar}
+      setPlayerAvatar={setPlayerAvatar}
+      customAvatar={customAvatar}
+      setCustomAvatar={setCustomAvatar}
+      mode="center"
+      serverStatus={serverStatus}
+      serverProgress={serverProgress}
+    />
   );
 
   const renderHostForm = () => (
@@ -98,18 +104,11 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
         <h3 className="text-xl md:text-2xl font-marker mb-3 md:mb-4 text-center">Game Settings</h3>
         
         <div className="space-y-3 md:space-y-4 mb-4 md:mb-6">
+            {/* Profile Napkin Preview */}
             <div>
-                <label className="block text-slate-600 font-bold mb-1 text-sm md:text-base">Your Name</label>
-                <input 
-                    type="text" 
-                    value={playerName}
-                    onChange={(e) => setPlayerName(e.target.value)}
-                    className="w-full border-2 border-slate-300 rounded px-3 py-2 font-handwritten text-lg md:text-xl bg-white text-slate-900 placeholder:text-slate-400"
-                    placeholder="Enter your name"
-                />
+                <label className="block text-slate-600 font-bold mb-2 text-sm md:text-base">Your Profile</label>
+                <AvatarPreview />
             </div>
-
-            <AvatarSelector />
             
             <div className="grid grid-cols-2 gap-2 md:gap-4">
                 <div>
@@ -189,18 +188,11 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
         )}
 
         <div className="space-y-3 md:space-y-4 mb-4 md:mb-6">
+            {/* Profile Napkin Preview */}
             <div>
-                <label className="block text-slate-600 font-bold mb-1 text-sm md:text-base">Your Name</label>
-                <input 
-                    type="text" 
-                    value={playerName}
-                    onChange={(e) => setPlayerName(e.target.value)}
-                    className="w-full border-2 border-slate-300 rounded px-3 py-2 font-handwritten text-lg md:text-xl bg-white text-slate-900 placeholder:text-slate-400"
-                    placeholder="Enter your name"
-                />
+                <label className="block text-slate-600 font-bold mb-2 text-sm md:text-base">Your Profile</label>
+                <AvatarPreview />
             </div>
-            
-            <AvatarSelector />
 
             <div>
                 <label className="block text-slate-600 font-bold mb-1 text-sm md:text-base">Room Link or Code</label>
@@ -229,8 +221,30 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
       </div>
   );
 
+  // During wake-up: show AvatarNapkin in center mode (full-screen)
+  // The transition to HOME is handled by App.tsx when serverStatus becomes 'ready'
+  if (lobbyMode === 'WAKING_SERVER') {
+    return renderWakingServer();
+  }
+
   return (
-    <div className="flex flex-col h-full items-center justify-center p-3 md:p-4 bg-slate-50 overflow-y-auto">
+    <div className="relative flex flex-col h-full items-center justify-center p-3 md:p-4 bg-slate-50 overflow-y-auto">
+      {/* Pinned Napkin in corner - always accessible */}
+      <div className="absolute top-4 right-4 z-50">
+        <AvatarNapkin
+          ref={napkinRef}
+          playerName={playerName}
+          setPlayerName={setPlayerName}
+          playerAvatar={playerAvatar}
+          setPlayerAvatar={setPlayerAvatar}
+          customAvatar={customAvatar}
+          setCustomAvatar={setCustomAvatar}
+          mode="corner"
+          serverStatus={serverStatus}
+          serverProgress={serverProgress}
+        />
+      </div>
+
       <div className="text-center space-y-1 md:space-y-2 mb-4 md:mb-8">
         <h1 className="text-4xl md:text-6xl font-marker text-slate-800 -rotate-2">
           Sketch<span className="text-blue-500">Link</span>
@@ -238,7 +252,6 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
         <p className="text-slate-500 font-handwritten text-xl md:text-2xl">Multiplayer Drawing</p>
       </div>
 
-      {lobbyMode === 'WAKING_SERVER' && renderWakingServer()}
       {lobbyMode === 'LOADING' && renderLoading()}
       {lobbyMode === 'HOME' && renderLobbyHome()}
       {lobbyMode === 'HOST' && renderHostForm()}

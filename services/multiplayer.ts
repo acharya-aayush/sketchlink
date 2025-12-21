@@ -68,7 +68,7 @@ class MultiplayerService {
 
   constructor() {}
 
-  public connect(name: string, avatar: string, roomId?: string): Promise<string> {
+  public connect(name: string, avatar: string, roomId?: string, customAvatar?: string | null): Promise<string> {
     return new Promise((resolve, reject) => {
       // Disconnect any existing connection first
       if (this.socket) {
@@ -101,10 +101,13 @@ class MultiplayerService {
         console.log('Socket connected:', this.socket?.id);
         this.playerId = this.socket?.id || '';
         
+        // Build payload with optional customAvatar
+        const payload = { name, avatar, customAvatar: customAvatar || undefined };
+        
         if (roomId) {
-            this.socket?.emit('join_room', { roomId, name, avatar });
+            this.socket?.emit('join_room', { roomId, ...payload });
         } else {
-            this.socket?.emit('create_room', { name, avatar });
+            this.socket?.emit('create_room', payload);
         }
       });
 

@@ -52,6 +52,20 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
   // Remote state
   const currentRemoteStroke = useRef<DrawPoint[]>([]);
 
+  // Get brush settings based on tool type
+  const getBrushSettings = (toolType: ToolType) => {
+    switch (toolType) {
+      case TOOLS.MARKER:
+        return { alpha: 0.7, lineCap: 'round' as const, lineJoin: 'round' as const };
+      case TOOLS.PENCIL:
+        return { alpha: 1.0, lineCap: 'round' as const, lineJoin: 'round' as const };
+      case TOOLS.ERASER:
+        return { alpha: 1.0, lineCap: 'round' as const, lineJoin: 'round' as const };
+      default:
+        return { alpha: 1.0, lineCap: 'round' as const, lineJoin: 'round' as const };
+    }
+  };
+
   // Helpers
   const hexToRgb = (hex: string) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -344,14 +358,27 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d', { willReadFrequently: true });
     if (canvas && ctx) {
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
+        const brushSettings = getBrushSettings(tool);
+        ctx.lineCap = brushSettings.lineCap;
+        ctx.lineJoin = brushSettings.lineJoin;
         ctx.lineWidth = strokeWidth;
-        ctx.strokeStyle = tool === TOOLS.ERASER ? '#ffffff' : color;
+        ctx.globalAlpha = brushSettings.alpha;
+        
+        // True eraser using destination-out (cuts through pixels)
+        if (tool === TOOLS.ERASER) {
+          ctx.globalCompositeOperation = 'destination-out';
+          ctx.strokeStyle = 'rgba(0,0,0,1)';
+        } else {
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.strokeStyle = color;
+        }
+        
         ctx.beginPath();
         ctx.moveTo(point.x, point.y);
         ctx.lineTo(point.x + 0.1, point.y);
         ctx.stroke();
+        ctx.globalAlpha = 1.0;
+        ctx.globalCompositeOperation = 'source-over';
     }
 
     if (onDrawPoint) onDrawPoint(startPoint);
@@ -388,14 +415,28 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
 
     if (canvas && ctx && len > 1) {
       const prev = stroke[len - 2];
+      const brushSettings = getBrushSettings(tool);
+      
       ctx.beginPath();
       ctx.moveTo(prev.x, prev.y);
       ctx.lineTo(point.x, point.y);
-      ctx.strokeStyle = tool === TOOLS.ERASER ? '#ffffff' : color;
       ctx.lineWidth = strokeWidth;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
+      ctx.lineCap = brushSettings.lineCap;
+      ctx.lineJoin = brushSettings.lineJoin;
+      ctx.globalAlpha = brushSettings.alpha;
+      
+      // True eraser using destination-out
+      if (tool === TOOLS.ERASER) {
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.strokeStyle = 'rgba(0,0,0,1)';
+      } else {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = color;
+      }
+      
       ctx.stroke();
+      ctx.globalAlpha = 1.0;
+      ctx.globalCompositeOperation = 'source-over';
 
       if (onDrawPoint) onDrawPoint(newPoint);
     }
@@ -415,10 +456,17 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
   // Calculate cursor screen position for display
   const cursorScreenPos = cursorPos ? getScreenPosition(cursorPos) : null;
 
+  // Get cursor style based on tool
+  const getCursorClass = () => {
+    if (disabled) return 'cursor-default';
+    if (tool === TOOLS.FILL) return 'cursor-crosshair'; // Will use custom SVG cursor
+    return 'cursor-none'; // Hide cursor, we draw our own
+  };
+
   return (
     <div 
         ref={containerRef} 
-        className={`w-full h-full relative bg-white overflow-hidden touch-none select-none ${disabled ? 'cursor-default' : 'cursor-none'}`}
+        className={`w-full h-full relative bg-white overflow-hidden touch-none select-none ${getCursorClass()}`}
         onMouseLeave={() => setCursorPos(null)}
         style={{ aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}` }}
     >
@@ -435,20 +483,38 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
         style={{ imageRendering: 'auto' }}
       />
       
-      {/* Brush Cursor */}
-      {!disabled && cursorScreenPos && tool !== TOOLS.FILL && (
+      {/* Brush/Eraser Cursor */}
+      {!disabled && cursorScreenPos && (tool === TOOLS.PENCIL || tool === TOOLS.MARKER || tool === TOOLS.ERASER) && (
           <div 
-            className="pointer-events-none fixed rounded-full border border-slate-400 z-50 transform -translate-x-1/2 -translate-y-1/2"
+            className="pointer-events-none fixed rounded-full border-2 z-50 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-75"
             style={{ 
                 left: cursorScreenPos.x, 
                 top: cursorScreenPos.y,
-                width: strokeWidth, 
-                height: strokeWidth,
-                backgroundColor: tool === TOOLS.ERASER ? 'white' : color,
-                opacity: 0.8,
-                boxShadow: '0 0 2px rgba(0,0,0,0.5)'
+                width: Math.max(8, strokeWidth * 0.8), 
+                height: Math.max(8, strokeWidth * 0.8),
+                backgroundColor: tool === TOOLS.ERASER ? 'transparent' : color,
+                borderColor: tool === TOOLS.ERASER ? '#666' : 'rgba(0,0,0,0.3)',
+                borderStyle: tool === TOOLS.ERASER ? 'dashed' : 'solid',
+                opacity: tool === TOOLS.MARKER ? 0.7 : 0.9,
             }}
           />
+      )}
+      
+      {/* Fill Tool Cursor - Paint Bucket */}
+      {!disabled && cursorScreenPos && tool === TOOLS.FILL && (
+          <div 
+            className="pointer-events-none fixed z-50 transform -translate-x-1 -translate-y-1"
+            style={{ left: cursorScreenPos.x, top: cursorScreenPos.y }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              {/* Paint bucket icon */}
+              <path d="M19 11V9a2 2 0 00-2-2H7a2 2 0 00-2 2v2" stroke="#333" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M5 11h14v8a2 2 0 01-2 2H7a2 2 0 01-2-2v-8z" fill={color} stroke="#333" strokeWidth="1.5"/>
+              <path d="M12 7V3M9 5l3-2 3 2" stroke="#333" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              {/* Drip */}
+              <circle cx="20" cy="18" r="2" fill={color} stroke="#333" strokeWidth="1"/>
+            </svg>
+          </div>
       )}
     </div>
   );

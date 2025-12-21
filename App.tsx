@@ -43,11 +43,18 @@ const App: React.FC = () => {
   // Host Settings State
   const [lobbyMode, setLobbyMode] = useState<'HOME' | 'HOST' | 'JOIN' | 'LOADING' | 'WAKING_SERVER'>('WAKING_SERVER');
   const [serverReady, setServerReady] = useState(false);
+  const [serverStatus, setServerStatus] = useState<'sleeping' | 'waking' | 'ready'>('sleeping');
+  const [serverProgress, setServerProgress] = useState(0);
   const [gameSettings, setGameSettings] = useState<GameSettings>({
       rounds: 3,
       drawTime: 60,
       difficulty: 'Medium',
       customWords: ''
+  });
+
+  // Custom Avatar State
+  const [customAvatar, setCustomAvatar] = useState<string | null>(() => {
+    return localStorage.getItem('sketchlink_custom_avatar');
   });
 
   // Game State
@@ -87,10 +94,33 @@ const App: React.FC = () => {
 
   // --- Initialization & URL Handling ---
   useEffect(() => {
-    // Wake up the server first (Render free tier sleeps)
+    // Wake up the server with progress tracking (Render free tier sleeps ~50s)
     const initServer = async () => {
-      await wakeUpServer();
-      setServerReady(true);
+      setServerStatus('waking');
+      setServerProgress(0);
+      
+      // Simulate progress while waiting (Render cold start is ~30-50s)
+      let progress = 0;
+      const progressInterval = setInterval(() => {
+        // Slow down as we get closer to 100
+        const increment = progress < 60 ? 3 : progress < 85 ? 1.5 : 0.3;
+        progress = Math.min(progress + increment, 95);
+        setServerProgress(progress);
+      }, 500);
+      
+      const success = await wakeUpServer();
+      clearInterval(progressInterval);
+      
+      if (success) {
+        setServerProgress(100);
+        setServerStatus('ready');
+        setServerReady(true);
+      } else {
+        // Even if health check failed, try to proceed (socket.io will retry)
+        setServerProgress(100);
+        setServerStatus('ready');
+        setServerReady(true);
+      }
       
       // Check for room code in URL
       const hash = window.location.hash;
@@ -114,6 +144,15 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('sketchlink_avatar', playerAvatar);
   }, [playerAvatar]);
+
+  // Save custom avatar to localStorage
+  useEffect(() => {
+    if (customAvatar) {
+      localStorage.setItem('sketchlink_custom_avatar', customAvatar);
+    } else {
+      localStorage.removeItem('sketchlink_custom_avatar');
+    }
+  }, [customAvatar]);
 
   // --- Network Event Handling ---
   useEffect(() => {
@@ -342,7 +381,7 @@ const App: React.FC = () => {
       initAudio();
       setLobbyMode('LOADING');
       try {
-        const roomId = await multiplayer.connect(playerName, playerAvatar);
+        const roomId = await multiplayer.connect(playerName, playerAvatar, undefined, customAvatar);
         setRoomCode(roomId);
         window.location.hash = `room=${roomId}`;
         
@@ -370,7 +409,7 @@ const App: React.FC = () => {
     setLobbyMode('LOADING');
     
     try {
-        await multiplayer.connect(playerName, playerAvatar, roomCode);
+        await multiplayer.connect(playerName, playerAvatar, roomCode, customAvatar);
         setIsConnected(true);
     } catch (err) {
         console.error(err);
@@ -594,9 +633,11 @@ const App: React.FC = () => {
              lobbyMode={lobbyMode} setLobbyMode={setLobbyMode}
              playerName={playerName} setPlayerName={setPlayerName}
              playerAvatar={playerAvatar} setPlayerAvatar={setPlayerAvatar}
+             customAvatar={customAvatar} setCustomAvatar={setCustomAvatar}
              roomCode={roomCode} setRoomCode={setRoomCode}
              gameSettings={gameSettings} setGameSettings={setGameSettings}
              joinError={joinError} players={players} isHost={isHost}
+             serverStatus={serverStatus} serverProgress={serverProgress}
              onCreateLobby={handleShowHostSettings} onHostStart={handleCreateRoom}
              onJoin={handleJoin} onStartGame={handleStartGame}
            />

@@ -434,7 +434,7 @@ io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
   let currentRoomId = null;
 
-  socket.on('create_room', ({ name, avatar }) => {
+  socket.on('create_room', ({ name, avatar, customAvatar }) => {
       // SECURITY: Validate player name
       if (!validatePlayerName(name)) {
         socket.emit('error_message', 'Invalid name. Use 1-20 alphanumeric characters.');
@@ -443,6 +443,10 @@ io.on('connection', (socket) => {
       
       const sanitizedName = sanitizeString(name.trim(), 20);
       const sanitizedAvatar = sanitizeString(avatar, 10);
+      // Custom avatar is a base64 data URL - validate it loosely
+      const sanitizedCustomAvatar = customAvatar && typeof customAvatar === 'string' && customAvatar.startsWith('data:image/') 
+        ? customAvatar.slice(0, 50000) // Limit to ~50KB
+        : null;
       
       const roomId = Math.random().toString(36).substr(2, 8).toUpperCase(); // 8 chars for better security
       const room = new GameRoom(roomId);
@@ -452,6 +456,7 @@ io.on('connection', (socket) => {
           socketId: socket.id,
           name: sanitizedName,
           avatar: sanitizedAvatar,
+          customAvatar: sanitizedCustomAvatar,
           score: 0,
           isHost: true, // First player is host
           isDrawer: true
@@ -467,7 +472,7 @@ io.on('connection', (socket) => {
       room.broadcast('SYNC_SETTINGS', room.settings);
   });
 
-  socket.on('join_room', ({ roomId, name, avatar }) => {
+  socket.on('join_room', ({ roomId, name, avatar, customAvatar }) => {
       // SECURITY: Validate player name
       if (!validatePlayerName(name)) {
         socket.emit('error_message', 'Invalid name. Use 1-20 alphanumeric characters.');
@@ -488,12 +493,17 @@ io.on('connection', (socket) => {
 
       const sanitizedName = sanitizeString(name.trim(), 20);
       const sanitizedAvatar = sanitizeString(avatar, 10);
+      // Custom avatar is a base64 data URL - validate it loosely
+      const sanitizedCustomAvatar = customAvatar && typeof customAvatar === 'string' && customAvatar.startsWith('data:image/') 
+        ? customAvatar.slice(0, 50000) // Limit to ~50KB
+        : null;
 
       const player = {
           id: socket.id,
           socketId: socket.id,
           name: sanitizedName,
           avatar: sanitizedAvatar,
+          customAvatar: sanitizedCustomAvatar,
           score: 0,
           isHost: false,
           isDrawer: false

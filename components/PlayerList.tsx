@@ -36,10 +36,18 @@ export const PlayerList: React.FC<PlayerListProps> = ({ players, drawerId, onLea
                   ${isMe ? 'ring-1 ring-blue-300' : ''}`}
               >
                 <span className={`font-bold text-xs w-4 ${i < 3 ? 'text-yellow-500' : 'text-slate-400'}`}>#{i+1}</span>
-                <span className="text-lg leading-none relative">
-                  {p.avatar}
+                <div className="relative w-6 h-6 shrink-0">
+                  {p.customAvatar ? (
+                    <img 
+                      src={p.customAvatar} 
+                      alt={`${p.name}'s avatar`}
+                      className="w-6 h-6 rounded-full border border-slate-200 object-cover bg-white"
+                    />
+                  ) : (
+                    <span className="text-lg leading-none">{p.avatar}</span>
+                  )}
                   {isDrawer && <span className="absolute -bottom-0.5 -right-0.5 text-[10px]">✏️</span>}
-                </span>
+                </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-bold text-slate-700 truncate text-xs leading-tight">
                     {p.name}
@@ -83,8 +91,16 @@ export const PlayerList: React.FC<PlayerListProps> = ({ players, drawerId, onLea
           return (
             <div key={p.id} className={`relative flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${isDrawer ? 'bg-amber-50 border-amber-300 shadow-sm' : 'bg-white border-slate-100'}`}>
                <div className={`font-bold w-5 text-center text-sm ${i < 3 ? 'text-yellow-500' : 'text-slate-400'}`}>#{i+1}</div>
-               <div className="text-2xl relative">
-                 {p.avatar}
+               <div className="relative w-8 h-8 shrink-0 flex items-center justify-center">
+                 {p.customAvatar ? (
+                   <img 
+                     src={p.customAvatar} 
+                     alt={`${p.name}'s avatar`}
+                     className="w-8 h-8 rounded-full border-2 border-slate-200 object-cover bg-white"
+                   />
+                 ) : (
+                   <span className="text-2xl">{p.avatar}</span>
+                 )}
                  {isDrawer && <div className="absolute -bottom-1 -right-1 text-sm drop-shadow-md">✏️</div>}
                </div>
                <div className="flex-1 min-w-0">
