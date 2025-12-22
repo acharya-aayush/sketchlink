@@ -50,6 +50,14 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
   
   // Remote state
   const currentRemoteStroke = useRef<DrawPoint[]>([]);
+  
+  // Ink leak easter egg - tracks idle time while drawing
+  const inkLeakTimer = useRef<NodeJS.Timeout | null>(null);
+  const inkLeakPos = useRef<Point | null>(null);
+  const inkLeakSize = useRef(0);
+  
+  // Eraser smudge easter egg - 1 in 100 chance per stroke
+  const eraserSmudgeMode = useRef(false);
 
   // Get brush settings based on tool type
   const getBrushSettings = (toolType: ToolType) => {
@@ -307,6 +315,86 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
       y: (clientY - rect.top) * scaleY 
     };
   };
+
+  // Ink leak effect - creates growing ink blot when idle while drawing
+  const startInkLeakTimer = (point: Point) => {
+    stopInkLeakTimer();
+    inkLeakPos.current = point;
+    inkLeakSize.current = 0;
+    
+    inkLeakTimer.current = setInterval(() => {
+      if (!inkLeakPos.current) return;
+      
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext('2d', { willReadFrequently: true });
+      if (!canvas || !ctx) return;
+      
+      // Grow the ink blot
+      inkLeakSize.current += 2;
+      
+      // Draw messy ink blot
+      ctx.save();
+      ctx.globalAlpha = 0.3;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      // Make it slightly irregular for natural look
+      const wobble = Math.sin(inkLeakSize.current * 0.5) * 3;
+      ctx.arc(inkLeakPos.current.x + wobble, inkLeakPos.current.y, inkLeakSize.current, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      
+      // Stop after 50px radius
+      if (inkLeakSize.current > 50) {
+        stopInkLeakTimer();
+      }
+    }, 100); // Grow every 100ms after 5s idle
+    
+    // Delay the ink leak start by 5 seconds
+    const delayTimer = setTimeout(() => {
+      // Timer already started above, this is just for the 5s delay
+    }, 5000);
+    
+    // Actually, let's restructure this properly
+    stopInkLeakTimer();
+    inkLeakTimer.current = setTimeout(() => {
+      inkLeakPos.current = point;
+      inkLeakSize.current = 0;
+      
+      // Start the growing interval
+      inkLeakTimer.current = setInterval(() => {
+        if (!inkLeakPos.current) return;
+        
+        const canvas = canvasRef.current;
+        const ctx = canvas?.getContext('2d', { willReadFrequently: true });
+        if (!canvas || !ctx) return;
+        
+        inkLeakSize.current += 2;
+        
+        ctx.save();
+        ctx.globalAlpha = 0.15;
+        ctx.fillStyle = '#1a1a1a'; // Dark ink color
+        ctx.beginPath();
+        const wobble = Math.sin(inkLeakSize.current * 0.3) * 2;
+        ctx.arc(inkLeakPos.current.x + wobble, inkLeakPos.current.y, inkLeakSize.current, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        
+        if (inkLeakSize.current > 40) {
+          stopInkLeakTimer();
+        }
+      }, 80);
+    }, 5000); // 5 second delay before ink starts leaking
+  };
+  
+  const stopInkLeakTimer = () => {
+    if (inkLeakTimer.current) {
+      clearTimeout(inkLeakTimer.current);
+      clearInterval(inkLeakTimer.current);
+      inkLeakTimer.current = null;
+    }
+    inkLeakPos.current = null;
+    inkLeakSize.current = 0;
+  };
     
   const handlePointerDown = (e: React.MouseEvent | React.TouchEvent) => {
     if ('touches' in e) e.preventDefault();
@@ -327,6 +415,12 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
 
     setIsDrawing(true);
     audioService.playDraw(); // Play Sound
+    
+    // Start ink leak timer (Easter egg)
+    startInkLeakTimer(point);
+    
+    // Easter egg: 1 in 100 chance eraser "smudges" instead of clean erase
+    eraserSmudgeMode.current = tool === TOOLS.ERASER && Math.random() < 0.01;
 
     const startPoint: DrawPoint = {
         x: point.x,
@@ -349,9 +443,14 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
         ctx.globalAlpha = brushSettings.alpha;
         
         // True eraser using destination-out (cuts through pixels)
+        // Easter egg: Smudge mode makes it semi-transparent
         if (tool === TOOLS.ERASER) {
           ctx.globalCompositeOperation = 'destination-out';
           ctx.strokeStyle = 'rgba(0,0,0,1)';
+          if (eraserSmudgeMode.current) {
+            // Smudge mode: only partially erases, leaving a ghost
+            ctx.globalAlpha = 0.3;
+          }
         } else {
           ctx.globalCompositeOperation = 'source-over';
           ctx.strokeStyle = color;
@@ -374,6 +473,9 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
     if (!isDrawing || disabled) return;
     const point = getCoordinates(e);
     if (!point) return;
+    
+    // Reset ink leak timer on movement (Easter egg)
+    startInkLeakTimer(point);
 
     const newPoint: DrawPoint = {
         x: point.x,
@@ -404,9 +506,13 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
       ctx.globalAlpha = brushSettings.alpha;
       
       // True eraser using destination-out
+      // Easter egg: Smudge mode makes it semi-transparent
       if (tool === TOOLS.ERASER) {
         ctx.globalCompositeOperation = 'destination-out';
         ctx.strokeStyle = 'rgba(0,0,0,1)';
+        if (eraserSmudgeMode.current) {
+          ctx.globalAlpha = 0.3;
+        }
       } else {
         ctx.globalCompositeOperation = 'source-over';
         ctx.strokeStyle = color;
@@ -421,6 +527,9 @@ export const CanvasBoard = forwardRef<CanvasBoardHandle, CanvasBoardProps>(({
   };
 
   const handlePointerUp = () => {
+    // Stop ink leak timer when releasing
+    stopInkLeakTimer();
+    
     if (isDrawing) {
       setIsDrawing(false);
       if (currentStroke.current.length > 0) {

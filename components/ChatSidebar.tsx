@@ -16,6 +16,12 @@ interface ChatSidebarProps {
 
 const REACTIONS = ['❤️', '😂', '😲', '🔥', '💩', '👏'];
 
+// Easter egg: Transform "tea" mentions to include ☕ emoji
+const transformTeaMentions = (text: string): string => {
+  // Case-insensitive replace, preserves original casing
+  return text.replace(/\btea\b/gi, (match) => `${match} ☕`);
+};
+
 export const ChatSidebar: React.FC<ChatSidebarProps> = ({ 
   roomCode, 
   messages, 
@@ -71,7 +77,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 {!msg.isSystem && <span className="text-sm select-none">{msg.senderAvatar}</span>}
                 <div className="break-all leading-tight">
                   {!msg.isSystem && <span className="font-bold text-slate-600 mr-1">{msg.sender}:</span>}
-                  {msg.text}
+                  {transformTeaMentions(msg.text)}
                 </div>
             </div>
           ))}
@@ -102,7 +108,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                       {!msg.isSystem && <span className="text-base select-none">{msg.senderAvatar}</span>}
                       <div className="break-all">
                         {!msg.isSystem && <span className="font-bold text-slate-600 mr-1">{msg.sender}:</span>}
-                        {msg.text}
+                        {transformTeaMentions(msg.text)}
                       </div>
                   </div>
               ))}

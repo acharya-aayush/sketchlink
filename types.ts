@@ -58,6 +58,8 @@ export interface GalleryItem {
   id: string;
   word: string;
   drawer: string;
+  drawerAvatar?: string;
+  drawerCustomAvatar?: string;
   image: string; // Base64 data URL
 }
 
@@ -80,6 +82,7 @@ export type GameEvent =
   | { type: 'PLAYER_JOINED'; payload: Player }
   | { type: 'START_ROUND'; payload: { wordLength: number; drawerId: string } }
   | { type: 'WORD_SELECTED'; payload: { duration: number } }
+  | { type: 'UPDATE_SETTINGS'; payload: GameSettings }
   | { type: 'EMOJI_REACTION'; payload: { emoji: string; senderId: string } };
 
 export const TOOLS = {

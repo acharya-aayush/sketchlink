@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Player } from '../types';
 import { multiplayer } from '../services/multiplayer';
 
@@ -11,8 +11,49 @@ interface PlayerListProps {
   isMobileCompact?: boolean; // For Skribbl.io-style mobile layout
 }
 
+// One Piece character overlays easter egg
+const getCharacterOverlay = (name: string): string | null => {
+  const lower = name.toLowerCase().trim();
+  if (lower === 'luffy') return '🦺'; // Straw hat
+  if (lower === 'zoro') return '⚔️'; // Swords
+  if (lower === 'nami') return '🍊'; // Tangerine
+  if (lower === 'sanji') return '🍳'; // Chef
+  if (lower === 'chopper') return '🩺'; // Medical
+  if (lower === 'robin') return '🌸'; // Flower
+  if (lower === 'franky') return '🤖'; // Robot
+  if (lower === 'brook') return '🎸'; // Guitar
+  return null;
+};
+
+// Check for "GOAT" players (Messi/Ronaldo)
+const isGoatPlayer = (name: string): boolean => {
+  const lower = name.toLowerCase().trim();
+  return lower === 'messi' || lower === 'ronaldo' || lower === 'cr7';
+};
+
 export const PlayerList: React.FC<PlayerListProps> = ({ players, drawerId, onLeave, feedbackMap, isMobileCompact = false }) => {
   const sortedPlayers = [...players].sort((a,b) => b.score - a.score);
+  
+  // Track SIUUU jump animation trigger for GOAT players at rank 1
+  const [siuuuPlayerId, setSiuuuPlayerId] = useState<string | null>(null);
+  const prevTopPlayerId = useRef<string | null>(null);
+  
+  // Trigger SIUUU animation when a GOAT player takes the lead
+  useEffect(() => {
+    if (sortedPlayers.length > 0) {
+      const topPlayer = sortedPlayers[0];
+      const wasTopBefore = prevTopPlayerId.current === topPlayer.id;
+      
+      // If GOAT player just took the lead (wasn't #1 before)
+      if (isGoatPlayer(topPlayer.name) && !wasTopBefore && topPlayer.score > 0) {
+        setSiuuuPlayerId(topPlayer.id);
+        // Clear animation after it completes
+        setTimeout(() => setSiuuuPlayerId(null), 1000);
+      }
+      
+      prevTopPlayerId.current = topPlayer.id;
+    }
+  }, [sortedPlayers]);
   
   // Mobile compact version (Skribbl.io style - shows in bottom panel)
   if (isMobileCompact) {
@@ -27,13 +68,17 @@ export const PlayerList: React.FC<PlayerListProps> = ({ players, drawerId, onLea
             const isMe = p.id === multiplayer.playerId;
             const isDrawer = p.id === drawerId;
             const feedback = feedbackMap[p.id];
+            const isGoat = isGoatPlayer(p.name);
+            const isDoingSiuuu = siuuuPlayerId === p.id;
 
             return (
               <div 
                 key={p.id} 
                 className={`relative flex items-center gap-2 p-1.5 rounded-lg border transition-all
                   ${isDrawer ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-100'}
-                  ${isMe ? 'ring-1 ring-blue-300' : ''}`}
+                  ${isMe ? 'ring-1 ring-blue-300' : ''}
+                  ${isGoat && i === 0 ? 'animate-goat-glow border-yellow-400' : ''}
+                  ${isDoingSiuuu ? 'animate-siuuu-jump' : ''}`}
               >
                 <span className={`font-bold text-xs w-4 ${i < 3 ? 'text-yellow-500' : 'text-slate-400'}`}>#{i+1}</span>
                 <div className="relative w-7 h-7 shrink-0 flex items-center justify-center">
@@ -50,6 +95,14 @@ export const PlayerList: React.FC<PlayerListProps> = ({ players, drawerId, onLea
                     />
                   ) : null}
                   <span className={`text-xl leading-none ${p.customAvatar ? 'hidden' : ''}`}>{p.avatar}</span>
+                  {/* One Piece character overlay */}
+                  {getCharacterOverlay(p.name) && (
+                    <span className="absolute -top-1 -right-1 text-[10px] drop-shadow-sm">{getCharacterOverlay(p.name)}</span>
+                  )}
+                  {/* GOAT player icon */}
+                  {isGoatPlayer(p.name) && (
+                    <span className="absolute -bottom-1 -left-1 text-[10px]">🐐</span>
+                  )}
                   {isDrawer && <span className="absolute -bottom-0.5 -right-0.5 text-[10px]">✏️</span>}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -91,9 +144,17 @@ export const PlayerList: React.FC<PlayerListProps> = ({ players, drawerId, onLea
           const isMe = p.id === multiplayer.playerId;
           const isDrawer = p.id === drawerId;
           const feedback = feedbackMap[p.id];
+          const isGoat = isGoatPlayer(p.name);
+          const isDoingSiuuu = siuuuPlayerId === p.id;
 
           return (
-            <div key={p.id} className={`relative flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${isDrawer ? 'bg-amber-50 border-amber-300 shadow-sm' : 'bg-white border-slate-100'}`}>
+            <div 
+              key={p.id} 
+              className={`relative flex items-center gap-3 p-3 rounded-lg border-2 transition-all
+                ${isDrawer ? 'bg-amber-50 border-amber-300 shadow-sm' : 'bg-white border-slate-100'}
+                ${isGoat && i === 0 ? 'animate-goat-glow border-yellow-400' : ''}
+                ${isDoingSiuuu ? 'animate-siuuu-jump' : ''}`}
+            >
                <div className={`font-bold w-5 text-center text-sm ${i < 3 ? 'text-yellow-500' : 'text-slate-400'}`}>#{i+1}</div>
                <div className="relative w-10 h-10 shrink-0 flex items-center justify-center">
                  {p.customAvatar ? (
@@ -108,6 +169,14 @@ export const PlayerList: React.FC<PlayerListProps> = ({ players, drawerId, onLea
                    />
                  ) : null}
                  <span className={`text-2xl ${p.customAvatar ? 'hidden' : ''}`}>{p.avatar}</span>
+                 {/* One Piece character overlay */}
+                 {getCharacterOverlay(p.name) && (
+                   <span className="absolute -top-1 -right-1 text-sm drop-shadow-sm">{getCharacterOverlay(p.name)}</span>
+                 )}
+                 {/* GOAT player icon */}
+                 {isGoatPlayer(p.name) && (
+                   <span className="absolute -bottom-1 -left-1 text-sm">🐐</span>
+                 )}
                  {isDrawer && <div className="absolute -bottom-1 -right-1 text-sm drop-shadow-md">✏️</div>}
                </div>
                <div className="flex-1 min-w-0">

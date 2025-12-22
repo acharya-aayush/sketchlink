@@ -81,6 +81,36 @@ export class AudioService {
     this.createOscillator('triangle', 523.25, 0.2, now + 0.3);
     this.createOscillator('triangle', 659.25, 0.6, now + 0.4);
   }
+
+  // Subtle pencil scratching sound - very soft and quick
+  public playPencilScratch() {
+    if (!this.initialized || !this.ctx || !this.masterGain) return;
+    
+    // Create brown noise-like scratch using filtered oscillators
+    const osc = this.ctx.createOscillator();
+    const filter = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+    
+    // Use sawtooth for scratchy texture
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(80 + Math.random() * 40, this.ctx.currentTime);
+    
+    // Bandpass filter to get that papery scratch sound
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(800 + Math.random() * 400, this.ctx.currentTime);
+    filter.Q.setValueAtTime(2, this.ctx.currentTime);
+    
+    // Very quiet - just a hint
+    gain.gain.setValueAtTime(0.015, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.03);
+    
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+    
+    osc.start(this.ctx.currentTime);
+    osc.stop(this.ctx.currentTime + 0.03);
+  }
 }
 
 export const audioService = new AudioService();

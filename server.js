@@ -98,23 +98,56 @@ function validatePlayerName(name) {
 // --- Game Constants (Moved from Frontend) ---
 const WORD_LIBRARY = {
   Easy: [
+    // Basic Objects
     'Apple', 'Sun', 'House', 'Tree', 'Car', 'Book', 'Chair', 'Fish', 'Bird', 'Moon',
-    'Ball', 'Smile', 'Cloud', 'Star', 'Cat', 'Dog', 'Hat', 'Eye', 'Mouth', 'Door'
+    'Ball', 'Smile', 'Cloud', 'Star', 'Cat', 'Dog', 'Hat', 'Eye', 'Mouth', 'Door',
+    'Pizza Slice', 'Donut', 'Cactus', 'Sunglasses', 'Ghost', 'Taco', 'Sword', 'Snail',
+    'Tooth', 'Mountains', 'Popsicle', 'Lightbulb', 'Stick Man', 'Envelope', 'Snake',
+    'Coffee Mug', 'Butterfly', 'Key', 'Balloon', 'Umbrella', 'Cupcake', 'Rainbow',
+    'Mushroom', 'Candle', 'Snowman', 'Heart', 'Flower', 'Banana', 'Ladybug', 'Bee'
   ],
   Medium: [
-    'Pizza', 'Ice Cream', 'Boat', 'Plane', 'Clock', 'Phone', 'Computer', 'Guitar',
-    'Robot', 'Alien', 'Ghost', 'Spider', 'Turtle', 'Rabbit', 'Duck', 'Horse', 
-    'Camera', 'Watch', 'Lamp', 'Shoes'
+    // Food & Objects
+    'Campfire', 'Scuba Diver', 'Skateboard', 'Broken Heart', 'Stinky Sock', 'Ice Cube',
+    'Sandwich', 'Bathtub', 'Jellyfish', 'Flying Saucer', 'Treasure Map', 'Brain Freeze',
+    'Melting Snowman', 'Angry Cloud', 'Hammer', 'Spider Web', 'Baguette', 'Rocket Ship',
+    'Windmill', 'Popcorn', 'Ninja', 'Pirate Ship', 'Wizard Hat', 'Magic Wand',
+    'Headphones', 'Microphone', 'Bowling Pin', 'Anchor', 'Compass', 'Treasure Chest',
+    // Pop Culture - Easy References
+    'Lightsaber', 'Pokeball', 'Mario Mushroom', 'Minecraft Creeper', 'Among Us',
+    'Baby Yoda', 'Pikachu', 'SpongeBob', 'Patrick Star', 'Shrek', 'Minion',
+    'Bart Simpson', 'Homer Simpson', 'Mickey Mouse', 'Sonic', 'Pac-Man',
+    'Thor Hammer', 'Captain America Shield', 'Batman Logo', 'Superman Logo'
   ],
   Hard: [
-    'Astronaut', 'Playground', 'Waterfall', 'Hurricane', 'Hospital', 'Library',
-    'Dragon', 'Unicorn', 'Dinosaur', 'Pyramid', 'Sphinx', 'Volcano', 'Tornado',
-    'Cactus', 'Kangaroo', 'Octopus', 'Penguin', 'Giraffe', 'Zebra', 'Elephant'
+    // Challenging Objects
+    'Roller Coaster', 'Time Machine', 'Electric Guitar', 'Haunted House', 'Solar System',
+    'Underwater Party', 'Invisible Man', 'Rainy Day', 'Dragon Fire', 'Construction Site',
+    'Eiffel Tower', 'Limousine', 'Diving Board', 'Backpack', 'Firetruck',
+    'Statue of Liberty', 'Microscope', 'Trombone', 'Video Game Controller',
+    // Dinosaurs & Creatures
+    'Tyrannosaurus Rex', 'Velociraptor', 'Pterodactyl', 'Triceratops', 'Stegosaurus',
+    'Kraken', 'Werewolf', 'Medusa', 'Centaur', 'Phoenix', 'Griffin',
+    // Pop Culture - Harder References  
+    'Thanos Snap', 'Infinity Gauntlet', 'Death Star', 'Millennium Falcon', 'TARDIS',
+    'Iron Man Suit', 'Straw Hat Luffy', 'Kamehameha', 'Naruto Running',
+    'One Punch Man', 'Attack on Titan', 'Demon Slayer Sword', 'Jujutsu Kaisen',
+    'Walter White', 'The Mandalorian', 'Squid Game Guard', 'Wednesday Addams',
+    // Medical/Scientific (Challenging)
+    'Stethoscope', 'DNA Helix', 'Atom Model', 'Black Hole', 'Space Station',
+    'Brain Surgery', 'X-Ray Skeleton', 'Chemical Reaction', 'Telescope',
+    // Abstract/Actions
+    'Monday Morning', 'Awkward Silence', 'Deja Vu', 'Plot Twist', 'Cliffhanger',
+    'Photobomb', 'Selfie Stick', 'Binge Watching', 'Brain Fart', 'Food Coma',
+    // Sports References
+    'Ronaldo Celebration', 'Messi Dribbling', 'LeBron Dunk', 'Tiger Woods Swing',
+    'Olympic Rings', 'World Cup Trophy', 'Slam Dunk', 'Hole in One'
   ]
 };
 
 // --- Room State Management ---
 const rooms = new Map();
+const pendingRoomDeletions = new Map(); // roomId -> timeoutId (for 2-minute grace period)
 
 class GameRoom {
   constructor(roomId, hostId) {
@@ -418,13 +451,38 @@ class GameRoom {
   }
 
   // --- Helper: Word Generation ---
+  // Always includes at least 1 Hard word for variety
   getWordOptions() {
-      let library = [...WORD_LIBRARY[this.settings.difficulty] || WORD_LIBRARY.Medium];
+      const difficulty = this.settings.difficulty || 'Medium';
+      let mainLibrary = [...WORD_LIBRARY[difficulty] || WORD_LIBRARY.Medium];
+      let hardLibrary = [...WORD_LIBRARY.Hard];
+      
+      // Add custom words if provided
       if (this.settings.customWords) {
           const custom = this.settings.customWords.split(',').map(w => w.trim()).filter(w => w);
-          library = [...custom, ...library];
+          mainLibrary = [...custom, ...mainLibrary];
       }
-      return library.sort(() => 0.5 - Math.random()).slice(0, 3);
+      
+      // Shuffle both libraries
+      mainLibrary.sort(() => 0.5 - Math.random());
+      hardLibrary.sort(() => 0.5 - Math.random());
+      
+      // Get 2 words from main difficulty
+      const mainWords = mainLibrary.slice(0, 2);
+      
+      // Always include 1 Hard word (if not already on Hard difficulty)
+      let hardWord = null;
+      if (difficulty !== 'Hard') {
+          // Find a hard word that's not in mainWords
+          hardWord = hardLibrary.find(w => !mainWords.includes(w));
+      } else {
+          // On Hard mode, just get 3 hard words
+          return mainLibrary.slice(0, 3);
+      }
+      
+      // Combine and shuffle final options
+      const options = hardWord ? [...mainWords, hardWord] : mainLibrary.slice(0, 3);
+      return options.sort(() => 0.5 - Math.random());
   }
 }
 
@@ -483,6 +541,13 @@ io.on('connection', (socket) => {
       if (!room) {
           socket.emit('error_message', 'Room not found');
           return;
+      }
+      
+      // Cancel pending deletion if someone is rejoining an empty room
+      if (pendingRoomDeletions.has(roomId)) {
+          clearTimeout(pendingRoomDeletions.get(roomId));
+          pendingRoomDeletions.delete(roomId);
+          console.log(`Room ${roomId} deletion cancelled - player rejoining!`);
       }
       
       // SECURITY: Limit players per room
@@ -688,6 +753,22 @@ io.on('connection', (socket) => {
           return;
       }
       
+      // Update Settings (host only, during LOBBY or GAME_OVER)
+      if (event.type === 'UPDATE_SETTINGS') {
+          const player = room.players.find(p => p.id === socket.id);
+          if (player && player.isHost && (room.phase === 'LOBBY' || room.phase === 'GAME_OVER')) {
+              const newSettings = event.payload;
+              // Validate settings
+              if (newSettings.rounds) room.settings.rounds = Math.min(10, Math.max(1, parseInt(newSettings.rounds) || 3));
+              if (newSettings.drawTime) room.settings.drawTime = Math.min(180, Math.max(15, parseInt(newSettings.drawTime) || 60));
+              if (newSettings.difficulty) room.settings.difficulty = ['Easy', 'Medium', 'Hard'].includes(newSettings.difficulty) ? newSettings.difficulty : 'Medium';
+              if (typeof newSettings.customWords === 'string') room.settings.customWords = sanitizeString(newSettings.customWords, 500);
+              
+              room.broadcast('SYNC_SETTINGS', room.settings);
+          }
+          return;
+      }
+      
       // Store drawing events for late joiners (with size limit)
       const MAX_DRAWING_EVENTS = 5000;
       
@@ -739,10 +820,25 @@ io.on('connection', (socket) => {
           if (room) {
               room.removePlayer(socket.id);
               if (room.players.length === 0) {
-                  // Clean up timers before deleting room
+                  // Clean up timers before scheduling deletion
                   if (room.timerInterval) clearInterval(room.timerInterval);
                   if (room.nextTurnTimeout) clearTimeout(room.nextTurnTimeout);
-                  rooms.delete(currentRoomId);
+                  
+                  // 2-minute grace period instead of immediate deletion
+                  // This allows players to rejoin if they accidentally refreshed
+                  console.log(`Room ${currentRoomId} is empty. Starting 2-minute grace period...`);
+                  
+                  const deletionTimeout = setTimeout(() => {
+                      // Double-check room is still empty
+                      const roomCheck = rooms.get(currentRoomId);
+                      if (roomCheck && roomCheck.players.length === 0) {
+                          rooms.delete(currentRoomId);
+                          console.log(`Room ${currentRoomId} deleted after grace period.`);
+                      }
+                      pendingRoomDeletions.delete(currentRoomId);
+                  }, 120000); // 2 minutes = 120,000ms
+                  
+                  pendingRoomDeletions.set(currentRoomId, deletionTimeout);
               } else {
                   room.broadcastState();
               }

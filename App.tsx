@@ -14,6 +14,7 @@ import { Confetti, ConfettiHandle } from './components/Confetti';
 import { ReactionOverlay, ReactionOverlayHandle } from './components/ReactionOverlay';
 import { Gallery } from './components/Gallery';
 import { VictoryPodium, VictoryPodiumHandle } from './components/VictoryPodium';
+import { CrumpledPaperCredits } from './components/CrumpledPaperCredits';
 
 const App: React.FC = () => {
   // Track if we're on mobile (state-based for proper re-render)
@@ -310,12 +311,14 @@ const App: React.FC = () => {
                id: Date.now().toString(),
                word: currentWord,
                drawer: playerName,
+               drawerAvatar: playerAvatar,
+               drawerCustomAvatar: customAvatar || undefined,
                image: dataUrl
            };
            multiplayer.addToGallery(item);
        }
     }
-  }, [phase, isMyTurn, currentWord, playerName]);
+  }, [phase, isMyTurn, currentWord, playerName, playerAvatar, customAvatar]);
 
   const triggerFeedback = (playerName: string) => {
       const player = players.find(p => p.name === playerName);
@@ -555,7 +558,7 @@ const App: React.FC = () => {
   
   const renderScoreboard = () => (
     <div className="absolute inset-0 z-30 flex items-center justify-center p-2 bg-slate-900/40 backdrop-blur-sm md:p-4 animate-fade-in rounded-xl">
-        <div className="bg-white p-4 md:p-8 rounded-xl shadow-2xl border-2 md:border-4 border-slate-300 w-full max-w-lg z-10 animate-bounce-in max-h-[85vh] overflow-y-auto">
+        <div className="bg-white p-4 md:p-8 wobbly-border shadow-2xl border-2 md:border-4 border-slate-300 w-full max-w-lg z-10 animate-bounce-in max-h-[85vh] overflow-y-auto">
             <h2 className="mb-1 text-2xl text-center md:text-4xl font-marker md:mb-2">Round Over!</h2>
             <div className="mb-3 text-base text-center md:mb-6 md:text-xl text-slate-600">
                 The word was: <span className="font-bold text-blue-600 uppercase">{currentWord}</span>
@@ -645,7 +648,7 @@ const App: React.FC = () => {
                   }`}
                   title="Click to copy link"
                 >
-                    {linkCopied ? '✅ Copied!' : (roomCode || "Connecting...")}
+                    {linkCopied ? '🖋️ Copied!' : `📋 ${roomCode || "Connecting..."}`}
                 </button>
              </div>
              
@@ -704,7 +707,19 @@ const App: React.FC = () => {
        <VictoryPodium ref={victoryPodiumRef} />
        
        {phase === GamePhase.GAME_OVER && (
-           <Gallery items={gallery} onPlayAgain={handlePlayAgain} isHost={isHost} players={players} victoryPodiumRef={victoryPodiumRef} />
+           <Gallery 
+             items={gallery} 
+             onPlayAgain={handlePlayAgain} 
+             onGoHome={handleLeave}
+             onUpdateSettings={(settings) => {
+               setGameSettings(settings);
+               multiplayer.send({ type: 'UPDATE_SETTINGS', payload: settings });
+             }}
+             isHost={isHost} 
+             players={players} 
+             victoryPodiumRef={victoryPodiumRef}
+             currentSettings={gameSettings}
+           />
        )}
 
        {!isConnected ? (
@@ -746,7 +761,7 @@ const App: React.FC = () => {
                    {/* Canvas Area - takes most of the screen */}
                    <div className="relative flex items-center justify-center flex-1 min-h-0 p-2">
                        {/* Canvas wrapper with aspect ratio */}
-                       <div className="relative w-full max-h-full overflow-hidden bg-white border-2 shadow-lg rounded-xl border-slate-200" style={{ aspectRatio: '16/9' }}>
+                       <div className={`relative w-full max-h-full overflow-hidden bg-white border-2 shadow-lg rounded-xl ${messiMode ? 'border-yellow-400 ring-4 ring-yellow-300/50 animate-glow' : 'border-slate-200'}`} style={{ aspectRatio: '16/9' }}>
                            <CanvasBoard 
                                ref={canvasRef} 
                                color={selectedColor} 
@@ -757,6 +772,13 @@ const App: React.FC = () => {
                                onStrokeEnd={handleStrokeEnd}
                                onFill={handleFill}
                            />
+                           
+                           {/* Messi Mode indicator */}
+                           {messiMode && (
+                               <div className="absolute z-20 px-2 py-1 text-xs font-bold text-yellow-800 bg-yellow-100 border border-yellow-300 rounded-full shadow-sm top-2 right-2 animate-pulse">
+                                   ⚽ GOAT Mode
+                               </div>
+                           )}
                            
                            {/* Drawer indicator - small overlay is fine inside canvas */}
                            {phase === GamePhase.DRAWING && (
@@ -874,7 +896,7 @@ const App: React.FC = () => {
                                  </div>
                             )}
 
-                            <div className="relative w-full h-full overflow-hidden bg-white border-4 shadow-lg rounded-xl border-slate-300" style={{ aspectRatio: '16/9' }}>
+                            <div className={`relative w-full h-full overflow-hidden bg-white border-4 shadow-lg wobbly-border ${messiMode ? 'border-yellow-400 ring-4 ring-yellow-300/50 animate-glow' : 'border-slate-300'}`} style={{ aspectRatio: '16/9' }}>
                                 <CanvasBoard 
                                     ref={canvasRef} 
                                     color={selectedColor} 
@@ -885,6 +907,13 @@ const App: React.FC = () => {
                                     onStrokeEnd={handleStrokeEnd}
                                     onFill={handleFill}
                                 />
+                                
+                                {/* Messi Mode indicator (desktop) */}
+                                {messiMode && (
+                                    <div className="absolute z-20 px-3 py-1 text-sm font-bold text-yellow-800 bg-yellow-100 border border-yellow-300 rounded-full shadow-sm top-4 right-4 animate-pulse">
+                                        ⚽ GOAT Mode Activated
+                                    </div>
+                                )}
                                 
                                 {phase === GamePhase.LOBBY && renderLobbyWaiting()}
                                 {phase === GamePhase.WORD_SELECT && renderWordSelect()}
@@ -922,6 +951,9 @@ const App: React.FC = () => {
                )}
            </div>
        )}
+       
+       {/* Easter egg crumpled paper credits - only show on lobby (desktop only) */}
+       <CrumpledPaperCredits show={!isConnected || phase === GamePhase.LOBBY} />
     </div>
   );
 };
