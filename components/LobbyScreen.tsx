@@ -4,6 +4,11 @@ import { Button } from './Button';
 import { GameSettings, Player } from '../types';
 import { AvatarNapkin, AvatarNapkinRef } from './AvatarNapkin';
 
+interface FunFact {
+  category: string;
+  text: string;
+}
+
 interface LobbyScreenProps {
   lobbyMode: 'HOME' | 'HOST' | 'JOIN' | 'LOADING' | 'WAKING_SERVER';
   setLobbyMode: (mode: 'HOME' | 'HOST' | 'JOIN' | 'LOADING' | 'WAKING_SERVER') => void;
@@ -26,6 +31,12 @@ interface LobbyScreenProps {
   onStartGame: () => void;
   serverStatus: 'sleeping' | 'waking' | 'ready';
   serverProgress: number;
+  // New props for enhanced UX
+  isCreating?: boolean;
+  currentFact?: FunFact;
+  teaMode?: boolean;
+  gomuStretch?: boolean;
+  onProgressClick?: () => void;
 }
 
 export const LobbyScreen: React.FC<LobbyScreenProps> = ({
@@ -37,7 +48,12 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
   gameSettings, setGameSettings,
   joinError, players, isHost,
   onCreateLobby, onHostStart, onJoin, onStartGame,
-  serverStatus, serverProgress
+  serverStatus, serverProgress,
+  isCreating = false,
+  currentFact,
+  teaMode = false,
+  gomuStretch = false,
+  onProgressClick
 }) => {
   const napkinRef = useRef<AvatarNapkinRef>(null);
 
@@ -96,6 +112,10 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
       mode="center"
       serverStatus={serverStatus}
       serverProgress={serverProgress}
+      currentFact={currentFact}
+      teaMode={teaMode}
+      gomuStretch={gomuStretch}
+      onProgressClick={onProgressClick}
     />
   );
 
@@ -172,7 +192,13 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
 
         <div className="flex gap-3 mt-auto md:mt-0">
             <Button onClick={() => setLobbyMode('HOME')} variant="secondary" className="flex-1">Cancel</Button>
-            <Button onClick={onHostStart} disabled={!playerName} className="flex-1">Create Room</Button>
+            <Button 
+              onClick={onHostStart} 
+              disabled={!playerName || isCreating || serverStatus !== 'ready'} 
+              className="flex-1"
+            >
+              {isCreating ? 'Creating...' : serverStatus !== 'ready' ? 'Waking Server...' : 'Create Room'}
+            </Button>
         </div>
     </div>
   );

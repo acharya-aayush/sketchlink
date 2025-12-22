@@ -1,10 +1,10 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GamePhase, ChatMessage, TOOLS, ToolType, COLORS, STROKE_WIDTHS, DrawPoint, GameEvent, FillAction, Player, GameSettings, GalleryItem } from './types';
 import { CanvasBoard, CanvasBoardHandle } from './components/CanvasBoard';
 import { Button } from './components/Button';
 import { multiplayer, wakeUpServer } from './services/multiplayer';
-import { AVATARS } from './constants';
+import { AVATARS, FUN_FACTS } from './constants';
 import { PlayerList } from './components/PlayerList';
 import { ChatSidebar } from './components/ChatSidebar';
 import { GameToolbar } from './components/GameToolbar';
@@ -83,6 +83,21 @@ const App: React.FC = () => {
   
   // Cheat code state for "Victorymation"
   const [cheatBuffer, setCheatBuffer] = useState('');
+  
+  // Fact Runner state (cycles fun facts during loading)
+  const [currentFactIndex, setCurrentFactIndex] = useState(0);
+  
+  // Copy Link feedback
+  const [linkCopied, setLinkCopied] = useState(false);
+  
+  // Easter egg states
+  const [teaMode, setTeaMode] = useState(false); // TEA -> switches coffee to tea emoji
+  const [messiMode, setMessiMode] = useState(false); // MESSI -> gold cursor
+  const [gomuClicks, setGomuClicks] = useState(0); // Track rapid clicks for Gomu Gomu stretch
+  const [gomuStretch, setGomuStretch] = useState(false);
+  
+  // Room creation lock
+  const [isCreating, setIsCreating] = useState(false);
 
   // Computed
   const isMe = players.find(p => p.id === multiplayer.playerId);
@@ -136,6 +151,42 @@ const App: React.FC = () => {
     initServer();
     audioService.init();
   }, []);
+
+  // Fact Runner: Cycle through fun facts every 4 seconds during wake-up
+  useEffect(() => {
+    if (serverStatus !== 'waking') return;
+    
+    const factInterval = setInterval(() => {
+      setCurrentFactIndex(prev => (prev + 1) % FUN_FACTS.length);
+    }, 4000);
+    
+    return () => clearInterval(factInterval);
+  }, [serverStatus]);
+
+  // Easter Egg keyboard listener
+  useEffect(() => {
+    let keyBuffer = '';
+    const handleKeyPress = (e: KeyboardEvent) => {
+      keyBuffer += e.key.toUpperCase();
+      // Keep only last 10 characters
+      if (keyBuffer.length > 10) keyBuffer = keyBuffer.slice(-10);
+      
+      // TEA easter egg - swap coffee to tea during loading
+      if (keyBuffer.includes('TEA') && !teaMode) {
+        setTeaMode(true);
+        keyBuffer = '';
+      }
+      
+      // MESSI easter egg - gold cursor mode
+      if (keyBuffer.includes('MESSI') && !messiMode) {
+        setMessiMode(true);
+        keyBuffer = '';
+      }
+    };
+    
+    window.addEventListener('keypress', handleKeyPress);
+    return () => window.removeEventListener('keypress', handleKeyPress);
+  }, [teaMode, messiMode]);
 
   useEffect(() => {
     localStorage.setItem('sketchlink_name', playerName);
@@ -378,7 +429,9 @@ const App: React.FC = () => {
 
   // Actually create the room after user configures settings
   const handleCreateRoom = async () => {
+      if (isCreating) return; // Prevent double-clicks
       initAudio();
+      setIsCreating(true);
       setLobbyMode('LOADING');
       try {
         const roomId = await multiplayer.connect(playerName, playerAvatar, undefined, customAvatar);
@@ -394,6 +447,8 @@ const App: React.FC = () => {
           console.error(err);
           setJoinError('Could not connect to server.');
           setLobbyMode('HOME');
+      } finally {
+          setIsCreating(false);
       }
   };
 
@@ -568,18 +623,29 @@ const App: React.FC = () => {
     );
   };
 
+  // Copy room link with feedback
+  const handleCopyLink = useCallback(() => {
+    navigator.clipboard.writeText(window.location.href);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  }, []);
+
   const renderLobbyWaiting = () => (
     <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-3 bg-slate-50 md:p-4 rounded-xl">
         <div className="w-full max-w-md p-4 text-center bg-white border-2 shadow-lg md:p-8 rounded-xl border-slate-200">
              <div className="mb-2 text-2xl font-marker md:text-3xl text-slate-700">Lobby</div>
              <div className="flex flex-col items-center gap-1 mb-4 text-sm text-slate-500 md:mb-6 md:text-base">
-                <span>Room Code:</span>
+                <span>Room Link:</span>
                 <button 
-                  onClick={() => navigator.clipboard.writeText(window.location.href)}
-                  className="max-w-full px-2 py-1 font-mono text-xs font-bold break-all transition-colors rounded select-all text-slate-800 bg-slate-100 md:text-sm hover:bg-blue-50"
+                  onClick={handleCopyLink}
+                  className={`max-w-full px-3 py-2 font-mono text-xs font-bold break-all transition-all rounded select-all md:text-sm ${
+                    linkCopied 
+                      ? 'bg-green-100 text-green-700 border-2 border-green-300' 
+                      : 'text-slate-800 bg-slate-100 hover:bg-blue-50 border-2 border-transparent'
+                  }`}
                   title="Click to copy link"
                 >
-                    {roomCode || "Connecting..."}
+                    {linkCopied ? '✅ Copied!' : (roomCode || "Connecting...")}
                 </button>
              </div>
              
@@ -653,6 +719,20 @@ const App: React.FC = () => {
              serverStatus={serverStatus} serverProgress={serverProgress}
              onCreateLobby={handleShowHostSettings} onHostStart={handleCreateRoom}
              onJoin={handleJoin} onStartGame={handleStartGame}
+             isCreating={isCreating}
+             currentFact={FUN_FACTS[currentFactIndex]}
+             teaMode={teaMode}
+             gomuStretch={gomuStretch}
+             onProgressClick={() => {
+               // Gomu Gomu stretch easter egg - 5 rapid clicks
+               setGomuClicks(prev => prev + 1);
+               setTimeout(() => setGomuClicks(prev => Math.max(0, prev - 1)), 2000);
+               if (gomuClicks >= 4) {
+                 setGomuStretch(true);
+                 setTimeout(() => setGomuStretch(false), 1000);
+                 setGomuClicks(0);
+               }
+             }}
            />
        ) : (
            <div className="relative z-10 flex flex-col h-full">

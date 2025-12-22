@@ -132,6 +132,11 @@ export interface AvatarNapkinRef {
   openEditor: () => void;
 }
 
+interface FunFact {
+  category: string;
+  text: string;
+}
+
 interface AvatarNapkinProps {
   playerName: string;
   setPlayerName: (name: string) => void;
@@ -142,6 +147,12 @@ interface AvatarNapkinProps {
   mode: 'center' | 'corner'; // center = wake-up screen, corner = pinned in header
   serverProgress?: number;
   serverStatus?: 'sleeping' | 'waking' | 'ready';
+  // Fun fact support
+  currentFact?: FunFact;
+  // Easter egg support
+  teaMode?: boolean;
+  gomuStretch?: boolean;
+  onProgressClick?: () => void;
 }
 
 const EMOJI_OPTIONS = ['😀', '😎', '🤠', '👻', '🎨', '🦊', '🐱', '🐶', '🦁', '🐸', '🐵', '🐼', '🐷', '🐨', '🦄', '🐲'];
@@ -155,7 +166,11 @@ export const AvatarNapkin = forwardRef<AvatarNapkinRef, AvatarNapkinProps>(({
   setCustomAvatar,
   mode,
   serverProgress = 0,
-  serverStatus = 'ready'
+  serverStatus = 'ready',
+  currentFact,
+  teaMode = false,
+  gomuStretch = false,
+  onProgressClick
 }, ref) => {
   const [isEditing, setIsEditing] = useState(mode === 'center');
   const [useCustom, setUseCustom] = useState(!!customAvatar);
@@ -262,16 +277,31 @@ export const AvatarNapkin = forwardRef<AvatarNapkinRef, AvatarNapkinProps>(({
           {/* Progress bar (only during wake-up) */}
           {mode === 'center' && serverStatus === 'waking' && (
             <div className="mb-6">
-              <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+              <div 
+                className={`h-3 bg-slate-200 rounded-full overflow-hidden cursor-pointer transition-transform ${gomuStretch ? 'animate-rubber-stretch scale-x-110' : ''}`}
+                onClick={onProgressClick}
+                title="Click me!"
+              >
                 <div 
-                  className="h-full bg-amber-500 transition-all duration-300 ease-out"
+                  className="h-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-300 ease-out"
                   style={{ width: `${serverProgress}%` }}/>
               </div>
-              <p className="text-center text-xs text-slate-400 mt-1">
-                {serverProgress < 30 ? "Waking up server..." : 
+              <p className="text-center text-xs text-slate-400 mt-2">
+                {teaMode ? '🍵' : '☕'} {serverProgress < 30 ? "Waking up server..." : 
                  serverProgress < 70 ? "Almost there..." : 
                  serverProgress < 95 ? "Finalizing..." : "Ready!"}
               </p>
+              {/* Fun fact display */}
+              {currentFact && (
+                <div className="mt-4 p-3 bg-amber-50 border-2 border-dashed border-amber-200 rounded-lg animate-fade-in">
+                  <div className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">
+                    {currentFact.category}
+                  </div>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    {currentFact.text}
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

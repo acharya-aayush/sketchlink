@@ -34,3 +34,19 @@ export const AVATARS = [
   '🎨', '✏️', '🍕', '🍦',
   '🤠', '😎', '🤪', '🥳'
 ];
+
+// Fun facts shown during server wake-up (cycle every 4-5 seconds)
+export const FUN_FACTS = [
+  { category: 'Developer', text: "Did you know the dev (Aayush) is a massive tea addict? ☕" },
+  { category: 'Developer', text: "Aayush is currently catching up on One Piece. No spoilers! 🏴‍☠️" },
+  { category: 'Developer', text: "This game was built with React, Socket.io, and lots of caffeine 💻" },
+  { category: 'Trivia', text: "Luffy's favorite food is meat, but he'd probably draw a bad circle 🍖" },
+  { category: 'Trivia', text: "Messi has 8 Ballon d'Ors, but can he draw a 'Goat' in 20 seconds? 🐐" },
+  { category: 'Trivia', text: "The fastest Pictionary round ever was guessed in under 2 seconds! ⚡" },
+  { category: 'Game Tip', text: "Pro Tip: Use the 'Fill' tool to save time on large backgrounds! 🎨" },
+  { category: 'Game Tip', text: "Speed matters! A messy drawing guessed fast is worth more points 🏃" },
+  { category: 'Game Tip', text: "Draw the most recognizable part first - silhouettes work! ✏️" },
+  { category: 'Fun', text: "Aayush is brewing tea while the server wakes up... 🍵" },
+  { category: 'Fun', text: "Warming up the drawing pencils... ✏️" },
+  { category: 'Fun', text: "Loading infinite creativity... 🎨" },
+];
