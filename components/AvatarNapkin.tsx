@@ -106,7 +106,7 @@ const MiniCanvas: React.FC<MiniCanvasProps> = ({ initialImage, onDraw, size = 10
         ref={canvasRef}
         width={size}
         height={size}
-        className="border-2 border-dashed border-slate-300 rounded-lg bg-white cursor-crosshair touch-none"
+        className="bg-white border-2 border-dashed rounded-lg border-slate-300 cursor-crosshair touch-none"
         style={{ width: size, height: size }}
         onMouseDown={startDraw}
         onMouseMove={draw}
@@ -118,7 +118,7 @@ const MiniCanvas: React.FC<MiniCanvasProps> = ({ initialImage, onDraw, size = 10
       />
       <button
         onClick={clearCanvas}
-        className="absolute -top-2 -right-2 w-6 h-6 bg-red-100 hover:bg-red-200 text-red-600 rounded-full text-xs font-bold border border-red-300 shadow-sm"
+        className="absolute w-6 h-6 text-xs font-bold text-red-600 bg-red-100 border border-red-300 rounded-full shadow-sm -top-2 -right-2 hover:bg-red-200"
         title="Clear"
       >
         ✕
@@ -200,7 +200,7 @@ export const AvatarNapkin = forwardRef<AvatarNapkinRef, AvatarNapkinProps>(({
   };
 
   const displayAvatar = useCustom && customAvatar ? (
-    <img src={customAvatar} alt="avatar" className="w-full h-full object-cover rounded-full" />
+    <img src={customAvatar} alt="avatar" className="object-cover w-full h-full rounded-full" />
   ) : (
     <span className="text-2xl">{playerAvatar}</span>
   );
@@ -210,14 +210,14 @@ export const AvatarNapkin = forwardRef<AvatarNapkinRef, AvatarNapkinProps>(({
     return (
       <button
         onClick={() => setIsEditing(true)}
-        className="group relative flex items-center gap-2 px-3 py-2 bg-amber-50 border-2 border-amber-200 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:scale-105 rotate-1 hover:rotate-0"
+        className="relative flex items-center gap-2 px-3 py-2 transition-all transform border-2 rounded-lg shadow-md group bg-amber-50 border-amber-200 hover:shadow-lg hover:scale-105 rotate-1 hover:rotate-0"
         title="Edit your profile"
       >
         {/* Tape effect */}
-        <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-3 bg-amber-100/80 rounded-sm border border-amber-200" />
+        <div className="absolute w-8 h-3 -translate-x-1/2 border rounded-sm -top-2 left-1/2 bg-amber-100/80 border-amber-200" />
         
         {/* Avatar */}
-        <div className="w-8 h-8 rounded-full bg-white border-2 border-slate-200 flex items-center justify-center overflow-hidden">
+        <div className="flex items-center justify-center w-8 h-8 overflow-hidden bg-white border-2 rounded-full border-slate-200">
           {displayAvatar}
         </div>
         
@@ -227,37 +227,37 @@ export const AvatarNapkin = forwardRef<AvatarNapkinRef, AvatarNapkinProps>(({
         </span>
         
         {/* Edit hint */}
-        <span className="text-xs opacity-0 group-hover:opacity-100 transition-opacity">✏️</span>
+        <span className="text-xs transition-opacity opacity-0 group-hover:opacity-100">✏️</span>
       </button>
     );
   }
 
   // --- CENTER MODE or EDITING: Full napkin editor ---
   return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center ${mode === 'corner' ? 'bg-black/40 backdrop-blur-sm' : 'bg-amber-50'}`}>
-      {/* Desk texture background (only in center mode) */}
+    <div className={`fixed inset-0 z-50 flex items-center justify-center ${mode === 'corner' ? 'bg-black/40 backdrop-blur-sm' : 'bg-slate-50'}`}>
+      {/* Subtle grid texture background (only in center mode) - matches main menu */}
       {mode === 'center' && (
-        <div className="absolute inset-0 opacity-10" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+        <div className="absolute inset-0 opacity-5" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23334155' fill-opacity='0.3'%3E%3Cpath d='M0 0h1v40H0V0zm39 0h1v40h-1V0zM0 0h40v1H0V0zm0 39h40v1H0v-1z'/%3E%3C/g%3E%3C/svg%3E")`
         }} />
       )}
 
       {/* The Napkin */}
-      <div className={`relative bg-white rounded-lg shadow-2xl transform transition-all duration-500 ${mode === 'center' ? 'rotate-1 scale-100' : 'rotate-0 scale-100'}`}
+      <div className={`relative bg-white rounded-xl shadow-2xl transform transition-all duration-500 ${mode === 'center' ? 'rotate-0 scale-100' : 'rotate-0 scale-100'} border-2 border-slate-200`}
            style={{ 
-             boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-             background: '#fffdf8'
+             boxShadow: '0 8px 40px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.06)',
+             background: '#ffffff'
            }}>
         
-        {/* Tape strips */}
-        <div className="absolute -top-3 left-6 w-12 h-5 bg-amber-100/90 rounded-sm border border-amber-200 transform -rotate-6" />
-        <div className="absolute -top-3 right-6 w-12 h-5 bg-amber-100/90 rounded-sm border border-amber-200 transform rotate-6" />
+        {/* Decorative accent strips */}
+        <div className="absolute w-12 h-5 transform border border-blue-200 rounded-sm -top-3 left-6 bg-blue-100/90 -rotate-6" />
+        <div className="absolute w-12 h-5 transform border border-blue-200 rounded-sm -top-3 right-6 bg-blue-100/90 rotate-6" />
         
         {/* Close button (only in modal/corner mode) */}
         {mode === 'corner' && (
           <button
             onClick={() => setIsEditing(false)}
-            className="absolute -top-2 -right-2 w-8 h-8 bg-white border-2 border-slate-200 rounded-full shadow-md hover:bg-slate-50 flex items-center justify-center text-slate-500 hover:text-slate-700 z-10"
+            className="absolute z-10 flex items-center justify-center w-8 h-8 bg-white border-2 rounded-full shadow-md -top-2 -right-2 border-slate-200 hover:bg-slate-50 text-slate-500 hover:text-slate-700"
           >
             ✕
           </button>
@@ -265,10 +265,10 @@ export const AvatarNapkin = forwardRef<AvatarNapkinRef, AvatarNapkinProps>(({
 
         <div className="p-8 pt-10">
           {/* Title */}
-          <h2 className="font-marker text-3xl text-center text-slate-800 mb-1">
+          <h2 className="mb-1 text-3xl text-center font-marker text-slate-800">
             SketchLink
           </h2>
-          <p className="text-center text-slate-500 text-sm mb-6">
+          <p className="mb-6 text-sm text-center text-slate-500">
             {mode === 'center' && serverStatus === 'waking' 
               ? "Draw yourself while we wake up the server..." 
               : "Your game identity"}
@@ -283,21 +283,21 @@ export const AvatarNapkin = forwardRef<AvatarNapkinRef, AvatarNapkinProps>(({
                 title="Click me!"
               >
                 <div 
-                  className="h-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-300 ease-out"
+                  className="h-full transition-all duration-300 ease-out bg-gradient-to-r from-blue-400 to-blue-500"
                   style={{ width: `${serverProgress}%` }}/>
               </div>
-              <p className="text-center text-xs text-slate-400 mt-2">
+              <p className="mt-2 text-xs text-center text-slate-400">
                 {teaMode ? '🍵' : '☕'} {serverProgress < 30 ? "Waking up server..." : 
                  serverProgress < 70 ? "Almost there..." : 
                  serverProgress < 95 ? "Finalizing..." : "Ready!"}
               </p>
               {/* Fun fact display */}
               {currentFact && (
-                <div className="mt-4 p-3 bg-amber-50 border-2 border-dashed border-amber-200 rounded-lg animate-fade-in">
-                  <div className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">
+                <div className="p-3 mt-4 border-2 border-blue-200 border-dashed rounded-lg bg-blue-50 animate-fade-in">
+                  <div className="mb-1 text-xs font-bold tracking-wider text-blue-600 uppercase">
                     {currentFact.category}
                   </div>
-                  <p className="text-sm text-slate-600 leading-relaxed">
+                  <p className="text-sm leading-relaxed text-slate-600">
                     {currentFact.text}
                   </p>
                 </div>
@@ -307,7 +307,7 @@ export const AvatarNapkin = forwardRef<AvatarNapkinRef, AvatarNapkinProps>(({
 
           {/* Name Input */}
           <div className="mb-6">
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+            <label className="block mb-2 text-xs font-bold tracking-wider uppercase text-slate-500">
               Your Name
             </label>
             <input
@@ -316,26 +316,26 @@ export const AvatarNapkin = forwardRef<AvatarNapkinRef, AvatarNapkinProps>(({
               onChange={(e) => setPlayerName(e.target.value)}
               placeholder="Enter name..."
               maxLength={20}
-              className="w-full px-4 py-3 text-lg font-marker border-2 border-dashed border-slate-300 rounded-lg bg-white/50 focus:border-amber-400 focus:outline-none transition-colors text-center"
+              className="w-full px-4 py-3 text-lg text-center transition-colors bg-white border-2 rounded-lg font-marker border-slate-300 focus:border-blue-400 focus:outline-none"
             />
           </div>
 
           {/* Avatar Section */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              <label className="text-xs font-bold tracking-wider uppercase text-slate-500">
                 Your Avatar
               </label>
               <div className="flex gap-1">
                 <button
                   onClick={() => setUseCustom(false)}
-                  className={`px-2 py-1 text-xs rounded ${!useCustom ? 'bg-amber-200 text-amber-800' : 'bg-slate-100 text-slate-600'}`}
+                  className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${!useCustom ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                 >
                   Emoji
                 </button>
                 <button
                   onClick={() => setUseCustom(true)}
-                  className={`px-2 py-1 text-xs rounded ${useCustom ? 'bg-amber-200 text-amber-800' : 'bg-slate-100 text-slate-600'}`}
+                  className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${useCustom ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                 >
                   Draw ✏️
                 </button>
@@ -351,15 +351,15 @@ export const AvatarNapkin = forwardRef<AvatarNapkinRef, AvatarNapkinProps>(({
 />
               </div>
             ) : (
-              <div className="grid grid-cols-8 gap-2">
+              <div className="grid grid-cols-4 gap-2 sm:grid-cols-8 sm:gap-2">
                 {EMOJI_OPTIONS.map((emoji) => (
                   <button
                     key={emoji}
                     onClick={() => handleEmojiSelect(emoji)}
-                    className={`text-2xl p-2 rounded-lg transition-all hover:scale-110 ${
+                    className={`text-3xl sm:text-2xl p-3 sm:p-2 rounded-xl sm:rounded-lg transition-all hover:scale-110 active:scale-95 touch-manipulation ${
                       playerAvatar === emoji && !useCustom
-                        ? 'bg-amber-200 ring-2 ring-amber-400'
-                        : 'bg-slate-50 hover:bg-slate-100'
+                        ? 'bg-blue-100 ring-2 ring-blue-400 shadow-md'
+                        : 'bg-white hover:bg-slate-100 border border-slate-200'
                     }`}
                   >
                     {emoji}
@@ -370,12 +370,12 @@ export const AvatarNapkin = forwardRef<AvatarNapkinRef, AvatarNapkinProps>(({
           </div>
 
           {/* Preview */}
-          <div className="flex items-center justify-center gap-3 p-4 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
-            <div className="w-12 h-12 rounded-full bg-white border-2 border-slate-300 flex items-center justify-center overflow-hidden shadow-inner">
+          <div className="flex items-center justify-center gap-3 p-4 border-2 border-dashed rounded-lg bg-slate-50 border-slate-200">
+            <div className="flex items-center justify-center w-12 h-12 overflow-hidden bg-white border-2 rounded-full shadow-inner border-slate-300">
               {displayAvatar}
             </div>
             <div>
-              <div className="font-marker text-lg text-slate-800">{playerName || 'Your Name'}</div>
+              <div className="text-lg font-marker text-slate-800">{playerName || 'Your Name'}</div>
               <div className="text-xs text-slate-400">Ready to play!</div>
             </div>
           </div>
@@ -384,7 +384,7 @@ export const AvatarNapkin = forwardRef<AvatarNapkinRef, AvatarNapkinProps>(({
           {mode === 'corner' && (
             <button
               onClick={() => setIsEditing(false)}
-              className="w-full mt-4 py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg shadow-sm transition-colors"
+              className="w-full py-3 mt-4 font-bold text-white transition-colors bg-blue-500 rounded-lg shadow-sm hover:bg-blue-600"
             >
               Done ✓
             </button>

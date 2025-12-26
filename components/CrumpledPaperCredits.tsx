@@ -20,7 +20,7 @@ export const CrumpledPaperCredits: React.FC<CrumpledPaperCreditsProps> = ({ show
   if (!show) return null;
 
   return (
-    <div className="fixed z-50 bottom-4 left-4 hidden md:block">
+    <div className="fixed z-50 hidden bottom-4 left-4 md:block">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`transition-all duration-500 ease-out cursor-pointer hover:scale-110 ${
@@ -57,7 +57,7 @@ export const CrumpledPaperCredits: React.FC<CrumpledPaperCreditsProps> = ({ show
             </p>
             
             <p className="mt-2 text-xs italic text-slate-500">
-              Caught up with One Piece! 🏴‍☠️
+              One Piece is Real😌✌️
             </p>
             
             {/* Social Links */}
