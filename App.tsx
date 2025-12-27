@@ -534,6 +534,7 @@ const App: React.FC = () => {
       id: Date.now().toString(),
       sender: playerName,
       senderAvatar: playerAvatar,
+      senderCustomAvatar: customAvatar || undefined,
       text: inputMessage,
       isCorrect: false, // Server will validate
       timestamp: Date.now()
@@ -648,7 +649,7 @@ const App: React.FC = () => {
                   }`}
                   title="Click to copy link"
                 >
-                    {linkCopied ? '🖋️ Copied!' : `📋 ${roomCode || "Connecting..."}`}
+                    {linkCopied ? 'Copied!' : roomCode || "Connecting..."}
                 </button>
              </div>
              

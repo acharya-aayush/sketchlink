@@ -72,7 +72,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
       </div>
       <div className="text-left">
         <div className="text-sm text-slate-700 font-bold">{playerName || 'Enter name...'}</div>
-        <div className="text-xs text-slate-400">Tap to edit profile ✏️</div>
+        <div className="text-xs text-slate-400">Tap to edit profile</div>
       </div>
     </button>
   );
@@ -80,7 +80,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
   const renderLobbyHome = () => (
     <div className="flex flex-col gap-4 w-full max-w-sm animate-fade-in">
        <Button onClick={onCreateLobby} className="w-full text-lg py-4">
-         ✏️ Create New Game
+         Create New Game
        </Button>
        <div className="relative flex py-2 items-center">
          <div className="flex-grow border-t border-slate-300"></div>
@@ -88,7 +88,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
          <div className="flex-grow border-t border-slate-300"></div>
        </div>
        <Button onClick={() => setLobbyMode('JOIN')} variant="secondary" className="w-full text-lg py-4">
-         🎮 Join Existing Game
+         Join Existing Game
        </Button>
     </div>
   );

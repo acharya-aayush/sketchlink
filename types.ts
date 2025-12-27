@@ -37,6 +37,7 @@ export interface ChatMessage {
   id: string;
   sender: string;
   senderAvatar?: string; // Optional for system messages
+  senderCustomAvatar?: string; // Custom drawn avatar (base64)
   text: string;
   isSystem?: boolean;
   isCorrect?: boolean;

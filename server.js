@@ -206,6 +206,25 @@ class GameRoom {
         console.log(`Host migrated to ${this.players[0].name} in room ${this.id}`);
       }
       
+      // Safety check: Ensure there's always a host if players remain
+      if (this.players.length > 0) {
+        const hasHost = this.players.some(p => p.isHost);
+        if (!hasHost) {
+          // Assign host to the first player (earliest joined)
+          this.players[0].isHost = true;
+          this.broadcast('CHAT_MESSAGE', {
+            id: Date.now().toString(),
+            sender: 'System',
+            text: `${this.players[0].name} is now the host`,
+            isSystem: true,
+            timestamp: Date.now()
+          });
+          console.log(`Emergency host assignment to ${this.players[0].name} in room ${this.id}`);
+        }
+        // Always broadcast updated player state after potential host changes
+        this.broadcast('SYNC_PLAYERS', this.players);
+      }
+      
       // Notify about player leaving
       if (this.players.length > 0) {
         this.broadcast('CHAT_MESSAGE', {
@@ -563,6 +582,10 @@ io.on('connection', (socket) => {
         ? customAvatar.slice(0, 50000) // Limit to ~50KB
         : null;
 
+      // Check if room has no host (e.g., empty room during grace period or all hosts left)
+      const hasHost = room.players.some(p => p.isHost);
+      const shouldBeHost = !hasHost || room.players.length === 0;
+
       const player = {
           id: socket.id,
           socketId: socket.id,
@@ -570,12 +593,24 @@ io.on('connection', (socket) => {
           avatar: sanitizedAvatar,
           customAvatar: sanitizedCustomAvatar,
           score: 0,
-          isHost: false,
+          isHost: shouldBeHost, // Make host if room has no host
           isDrawer: false
       };
 
       room.addPlayer(player);
       currentRoomId = roomId;
+      
+      // If this player became host, announce it
+      if (shouldBeHost) {
+          console.log(`${sanitizedName} became host of room ${roomId} (no previous host)`);
+          room.broadcast('CHAT_MESSAGE', {
+            id: Date.now().toString(),
+            sender: 'System',
+            text: `${sanitizedName} is now the host`,
+            isSystem: true,
+            timestamp: Date.now()
+          });
+      }
       
       socket.join(roomId);
       socket.emit('room_joined', { roomId, playerId: socket.id });

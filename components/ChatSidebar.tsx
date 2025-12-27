@@ -50,7 +50,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     return (
       <div className="flex flex-col h-full bg-slate-50 overflow-hidden">
         <div className="px-2 py-1.5 bg-white border-b border-slate-200 flex items-center justify-between">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">💬 Chat</span>
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Chat</span>
           <div className="flex gap-1">
             {REACTIONS.slice(0, 4).map(emoji => (
               <button 
@@ -74,7 +74,13 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 msg.isCorrect ? 'bg-green-100 text-green-800 border border-green-200' : 
                 msg.isClose ? 'bg-yellow-50 text-yellow-700 border border-yellow-200' :
                 'bg-white border border-slate-200 text-slate-800'}`}>
-                {!msg.isSystem && <span className="text-sm select-none">{msg.senderAvatar}</span>}
+                {!msg.isSystem && (
+                  msg.senderCustomAvatar ? (
+                    <img src={msg.senderCustomAvatar} alt="" className="w-5 h-5 rounded-full border border-slate-200 object-cover shrink-0" />
+                  ) : (
+                    <span className="text-sm select-none">{msg.senderAvatar}</span>
+                  )
+                )}
                 <div className="break-all leading-tight">
                   {!msg.isSystem && <span className="font-bold text-slate-600 mr-1">{msg.sender}:</span>}
                   {transformTeaMentions(msg.text)}
@@ -91,7 +97,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   return (
       <aside className="hidden md:flex w-80 bg-slate-50 border-l border-slate-200 flex-col h-full shrink-0 z-20 shadow-sm">
           <div className="p-2 border-b border-slate-200 bg-white font-marker text-sm text-slate-500 flex justify-between items-center">
-            <span className="flex items-center gap-1">💬 Chat</span>
+            <span className="flex items-center gap-1">Chat</span>
             <span className="text-slate-300 text-xs">Room: {roomCode.split('-')[0]}</span>
           </div>
           
@@ -100,12 +106,18 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                   <div className="text-center text-slate-400 text-xs italic mt-4">No messages yet. Say hi!</div>
               )}
               {messages.map(msg => (
-                  <div key={msg.id} className={`text-sm p-1.5 rounded flex items-start gap-1 
+                  <div key={msg.id} className={`text-sm p-1.5 rounded flex items-start gap-1.5 
                     ${msg.isSystem ? 'justify-center text-xs text-slate-500 italic bg-transparent' : 
                       msg.isCorrect ? 'bg-green-100 text-green-800 border border-green-200' : 
                       msg.isClose ? 'bg-yellow-50 text-yellow-700 border border-yellow-200' :
                       'bg-white border border-slate-200 text-slate-800 shadow-sm'}`}>
-                      {!msg.isSystem && <span className="text-base select-none">{msg.senderAvatar}</span>}
+                      {!msg.isSystem && (
+                        msg.senderCustomAvatar ? (
+                          <img src={msg.senderCustomAvatar} alt="" className="w-6 h-6 rounded-full border border-slate-200 object-cover shrink-0" />
+                        ) : (
+                          <span className="text-base select-none">{msg.senderAvatar}</span>
+                        )
+                      )}
                       <div className="break-all">
                         {!msg.isSystem && <span className="font-bold text-slate-600 mr-1">{msg.sender}:</span>}
                         {transformTeaMentions(msg.text)}
